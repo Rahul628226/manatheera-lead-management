@@ -73,7 +73,7 @@ export default function Home() {
       {/* Left Section: Visual Branding */}
       <div
         className="hidden lg:flex lg:w-3/5 relative bg-cover bg-center"
-        style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuD6tB-q-bOndQyXonjSv6U4qUg7OAcgG-LdvOeNlGeke_8bqh801T2ERm9Hh6e2DJKuZ6x9gKfYvOQrbNNgQ0740oTmECHhIUhLgwoc03NTHLC6nL1uFIW9sapZ4Y1wMZvR8wE61urS6ReE1MvgAOsD2CJsCaKPXzmnNWDtzTQW5nnDwnjmwPsW1e5qjsMt-XsYDyOydWyUJQLaXSd5EnTTQxYzySaepIP3Pbn-ESUVJHXqHo4a8Ot3e2ylE8FwyZHAAQLqbgNhGpY')" }}
+        style={{ backgroundImage: "url('/event.jpg')" }}
       >
         <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
         <div className="relative z-10 flex flex-col justify-between p-12 h-full w-full">
