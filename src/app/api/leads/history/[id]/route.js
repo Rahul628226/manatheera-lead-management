@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import Lead from '@/lib/models/Lead';
+import Log from '@/lib/models/Log';
 import User from '@/lib/models/User';
 import jwt from 'jsonwebtoken';
 
@@ -19,36 +19,28 @@ async function verifyAuth(req) {
     }
 }
 
-export async function GET(req) {
+export async function GET(req, { params }) {
     try {
         const user = await verifyAuth(req);
         if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
+        // Only Admin/Developer can see activity logs
+        if (user.role !== 'admin' && user.role !== 'developer') {
+            return NextResponse.json({ message: 'Access denied' }, { status: 403 });
+        }
+
+        const resolvedParams = await params;
+        const { id } = resolvedParams;
+
         await dbConnect();
 
-        let query = {};
-        // Removed staff filter: Staff see all lead stats now
-
-        const totalLeads = await Lead.countDocuments(query);
-        const hotLeads = await Lead.countDocuments({ ...query, status: 'hot' });
-        const closedWon = await Lead.countDocuments({ ...query, status: 'closed-won' });
-
-        // Calculate conversion rate
-        const conversionRate = totalLeads > 0 ? ((closedWon / totalLeads) * 100).toFixed(1) : 0;
-
-        // Recently created leads (e.g., today)
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-        const newLeadsToday = await Lead.countDocuments({ ...query, createdAt: { $gte: startOfToday } });
+        const logs = await Log.find({ leadId: id })
+            .sort({ createdAt: -1 })
+            .populate('userId', 'fullName username role');
 
         return NextResponse.json({
             status: 'success',
-            data: {
-                totalLeads,
-                hotLeads,
-                conversionRate,
-                newLeadsToday
-            }
+            data: logs
         });
     } catch (error) {
         return NextResponse.json({ status: 'error', message: error.message }, { status: 500 });

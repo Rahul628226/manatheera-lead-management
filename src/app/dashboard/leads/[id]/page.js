@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import TablePagination from "@/components/ui/TablePagination";
 
 export default function LeadDetailPage() {
     const router = useRouter();
@@ -10,7 +11,7 @@ export default function LeadDetailPage() {
     const [lead, setLead] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState("details"); // details, followups
+    const [activeTab, setActiveTab] = useState("details"); // details, followups, activity
     const [timelineFilter, setTimelineFilter] = useState("all");
     const [newLog, setNewLog] = useState({ type: "note", content: "" });
     const [nextCall, setNextCall] = useState({ date: "", goal: "", notify: false });
@@ -22,6 +23,42 @@ export default function LeadDetailPage() {
     const [selectedTaskId, setSelectedTaskId] = useState("");
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
     const [showAllHistory, setShowAllHistory] = useState(false);
+    const [user, setUser] = useState(null);
+    const [activityLogs, setActivityLogs] = useState([]);
+    const [activityPagination, setActivityPagination] = useState({
+        page: 1,
+        totalPages: 1,
+        total: 0,
+        limit: 10
+    });
+    const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) setUser(JSON.parse(storedUser));
+    }, []);
+
+    const fetchActivityLogs = async (page = 1) => {
+        if (!user || (user.role !== 'admin' && user.role !== 'developer')) return;
+        try {
+            const res = await fetch(`/api/leads/${id}/history?page=${page}&limit=${activityPagination.limit}`);
+            const data = await res.json();
+            if (res.ok) {
+                setActivityLogs(data.data);
+                if (data.pagination) {
+                    setActivityPagination(data.pagination);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch activity logs");
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'activity') {
+            fetchActivityLogs(activityPagination.page);
+        }
+    }, [id, activeTab, user, activityPagination.page]);
 
     const startEditing = (log) => {
         setEditingLogId(log._id);
@@ -241,8 +278,7 @@ export default function LeadDetailPage() {
                             id: responseData.data._id || lead._id,
                             title: `Follow-up Due: ${lead.firstName} ${lead.lastName}`,
                             body: nextCall.goal || "Scheduled follow-up is due.",
-                            body: nextCall.goal || "Scheduled follow-up is due.",
-                            date: new Date(nextCall.date).toISOString(), // nextCall.date is already ISO string from state update
+                            date: new Date(nextCall.date).toISOString(),
                             shown: false,
                             syncedAt: Date.now()
                         };
@@ -264,6 +300,25 @@ export default function LeadDetailPage() {
             }
         } catch (err) {
             console.error("Schedule failed");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleConvertToBooking = async () => {
+        setSaving(true);
+        try {
+            const response = await fetch(`/api/leads/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "closed-won" }),
+            });
+            if (response.ok) {
+                fetchLead();
+                setIsConvertModalOpen(false);
+            }
+        } catch (err) {
+            console.error("Conversion failed");
         } finally {
             setSaving(false);
         }
@@ -331,7 +386,10 @@ export default function LeadDetailPage() {
                         <span className="material-symbols-outlined text-lg">edit</span>
                         <span>Edit Info</span>
                     </button>
-                    <button className="flex min-w-[160px] cursor-pointer items-center justify-center rounded-xl h-11 px-6 bg-primary text-white text-sm font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">
+                    <button
+                        onClick={() => setIsConvertModalOpen(true)}
+                        className="flex min-w-[160px] cursor-pointer items-center justify-center rounded-xl h-11 px-6 bg-primary text-white text-sm font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+                    >
                         Convert to Booking
                     </button>
                 </div>
@@ -357,6 +415,14 @@ export default function LeadDetailPage() {
                                 >
                                     Follow-ups ({lead.followUps?.length || 0})
                                 </button>
+                                {(user?.role === 'admin' || user?.role === 'developer') && (
+                                    <button
+                                        onClick={() => setActiveTab("activity")}
+                                        className={`pb-4 pt-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'activity' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        Activity Log
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -373,7 +439,7 @@ export default function LeadDetailPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Event Type</span>
-                                            <p className="text-slate-900 font-bold capitalize">{lead.event.replace('-', ' ')}</p>
+                                            <p className="text-slate-900 font-bold capitalize">{lead.event ? lead.event.replace('-', ' ') : "Not Specified"}</p>
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Occasion</span>
@@ -384,13 +450,27 @@ export default function LeadDetailPage() {
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Guest Composition</span>
-                                            <p className="text-slate-900 font-bold">{lead.guests} Adults, {lead.children} Children, {lead.infants} Infants</p>
+                                            <p className="text-slate-900 font-bold">{lead.guests} Adults, {lead.children} Children</p>
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Booking Period</span>
                                             <p className="text-slate-900 font-bold">
                                                 {lead.checkInDate ? new Date(lead.checkInDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : "TBD"} — {lead.checkOutDate ? new Date(lead.checkOutDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : "--"}
                                             </p>
+                                        </div>
+                                        <div className="flex flex-col gap-1 md:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                                            <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Requested Facilities</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {lead.facilities && lead.facilities.length > 0 ? (
+                                                    lead.facilities.map(f => (
+                                                        <span key={f._id} className="bg-primary/5 text-primary text-[10px] font-black px-3 py-1 rounded-lg border border-primary/10">
+                                                            {f.name}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-slate-400 text-xs italic font-medium">No specific facilities requested.</p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -455,7 +535,10 @@ export default function LeadDetailPage() {
                                         <p className="text-slate-600 text-sm leading-relaxed italic">
                                             "{lead.notes || "No initial notes provided for this lead."}"
                                         </p>
-                                        <p className="text-slate-400 text-[9px] mt-4 font-black uppercase tracking-widest">Updated {new Date(lead.updatedAt).toLocaleDateString()} by {lead.owner?.fullName || "System"}</p>
+                                        <div className="flex justify-between items-center mt-4">
+                                            <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest">Created by: {lead.createdBy?.fullName || "System"}</p>
+                                            <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest">Owned by: {lead.owner?.fullName || "System"}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -549,17 +632,6 @@ export default function LeadDetailPage() {
                                                                     <>
                                                                         <p className="text-slate-600 text-sm leading-relaxed">{log.content}</p>
 
-                                                                        <div className="mt-4 pt-4 border-t border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity flex gap-4">
-                                                                            <button
-                                                                                onClick={() => startEditing(log)}
-                                                                                className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline"
-                                                                            >
-                                                                                <span className="material-symbols-outlined text-sm">edit</span> Edit Notes
-                                                                            </button>
-                                                                            <button className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 hover:text-slate-600">
-                                                                                <span className="material-symbols-outlined text-sm">share</span> Share
-                                                                            </button>
-                                                                        </div>
                                                                     </>
                                                                 )}
                                                             </div>
@@ -621,6 +693,64 @@ export default function LeadDetailPage() {
                                         >
                                             Start conversation timeline
                                         </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'activity' && (
+                            <div className="p-8">
+                                <h3 className="text-slate-900 text-lg font-black italic mb-8">System Activity Trail</h3>
+                                <div className="space-y-6">
+                                    {activityLogs.length > 0 ? (
+                                        activityLogs.map((log, i) => (
+                                            <div key={i} className="flex gap-4">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                                                        <span className="material-symbols-outlined text-base">
+                                                            {log.action.includes('created') ? 'add_circle' :
+                                                                log.action.includes('updated') ? 'edit_note' :
+                                                                    log.action.includes('deleted') ? 'delete_forever' : 'info'}
+                                                        </span>
+                                                    </div>
+                                                    {i < activityLogs.length - 1 && <div className="w-[1px] h-full bg-slate-100 my-1"></div>}
+                                                </div>
+                                                <div className="flex-1 pb-6">
+                                                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h4 className="text-slate-900 font-bold text-xs uppercase tracking-tight">
+                                                                {log.action.split('_').join(' ')}
+                                                            </h4>
+                                                            <span className="text-[9px] text-slate-400 font-black">
+                                                                {new Date(log.createdAt).toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-slate-600 text-xs mt-1">{log.details}</p>
+                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200/50">
+                                                            <div className="size-4 rounded-full bg-primary/20 flex items-center justify-center text-[7px] font-black text-primary">
+                                                                {log.userId?.fullName?.charAt(0) || "U"}
+                                                            </div>
+                                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Performed by {log.userId?.fullName || log.username}</span>
+                                                            {log.ipAddress && <span className="text-[8px] text-slate-300 ml-auto">IP: {log.ipAddress}</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-10 text-slate-400 font-bold italic">
+                                            No activity logs recorded yet.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {activityLogs.length > 0 && (
+                                    <div className="mt-8 border-t border-slate-100 -mx-8">
+                                        <TablePagination
+                                            pagination={activityPagination}
+                                            onPageChange={(newPage) => setActivityPagination(prev => ({ ...prev, page: newPage }))}
+                                            className="bg-transparent"
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -710,23 +840,6 @@ export default function LeadDetailPage() {
                         </form>
                     </div>
 
-
-
-                    {/* Lead Health Card */}
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Lead Status Health</h3>
-                        <div className="flex items-end gap-3 mb-2">
-                            <span className="text-3xl font-black text-primary">84%</span>
-                            <span className="text-[10px] font-bold text-emerald-500 mb-1 flex items-center gap-0.5 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                <span className="material-symbols-outlined text-sm">trending_up</span> +5%
-                            </span>
-                        </div>
-                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div className="bg-primary h-full w-[84%] rounded-full shadow-[0_0_8px_rgba(32,80,68,0.3)]"></div>
-                        </div>
-                        <p className="text-[9px] text-slate-400 mt-3 font-medium uppercase tracking-tight">Based on {lead.followUps?.length || 0} interactions. High conversion probability.</p>
-                    </div>
-
                     {/* Engagement Score */}
                     <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl shadow-slate-200">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Engagement Quality</h4>
@@ -799,26 +912,57 @@ export default function LeadDetailPage() {
                                     </span>
                                     <button
                                         type="button"
-                                        onClick={() => setNextCall(prev => ({ ...prev, notify: !prev.notify }))}
-                                        className={`relative w-12 h-7 rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${nextCall.notify ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                                        onClick={() => setNextCall({ ...nextCall, notify: !nextCall.notify })}
+                                        className={`w-12 h-6 rounded-full relative transition-all ${nextCall.notify ? 'bg-emerald-500' : 'bg-slate-300'}`}
                                     >
-                                        <span
-                                            className={`absolute left-0.5 top-0.5 inline-block w-6 h-6 bg-white rounded-full shadow-sm transform ring-0 transition-transform duration-200 ease-in-out ${nextCall.notify ? 'translate-x-5' : 'translate-x-0'}`}
-                                        />
+                                        <div className={`absolute top-1 size-4 bg-white rounded-full transition-all ${nextCall.notify ? 'right-1' : 'left-1'}`}></div>
                                     </button>
                                 </div>
 
                                 <button
-                                    disabled={saving}
-                                    className="w-full h-14 bg-emerald-500 text-white rounded-xl text-base font-black shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all mt-2"
+                                    disabled={saving || !nextCall.date}
+                                    className="w-full h-14 bg-emerald-500 text-white rounded-xl text-base font-black shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all mt-2 disabled:opacity-50"
                                 >
-                                    {saving ? "Saving..." : "Update Schedule"}
+                                    {saving ? "Scheduling..." : "Confirm Schedule"}
                                 </button>
                             </form>
                         </div>
                     </div>
                 )
             }
+
+            {/* Conversion Modal */}
+            {isConvertModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="fixed inset-0" onClick={() => setIsConvertModalOpen(false)}></div>
+                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 relative animate-in zoom-in-95 duration-200 z-10">
+                        <div className="flex flex-col items-center text-center gap-6">
+                            <div className="size-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shadow-inner">
+                                <span className="material-symbols-outlined text-4xl">check_circle</span>
+                            </div>
+                            <div>
+                                <h2 className="text-slate-900 font-black text-2xl italic tracking-tight mb-2">Confirm Booking</h2>
+                                <p className="text-slate-500 text-sm font-medium">Are you sure you want to convert this lead to a confirmed booking? This will update the status to <span className="text-emerald-600 font-bold uppercase">Booked / Closed Won</span>.</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 w-full pt-2">
+                                <button
+                                    onClick={() => setIsConvertModalOpen(false)}
+                                    className="h-14 rounded-2xl border border-slate-200 text-slate-500 text-sm font-black hover:bg-slate-50 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConvertToBooking}
+                                    disabled={saving}
+                                    className="h-14 rounded-2xl bg-primary text-white text-sm font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                                >
+                                    {saving ? "Updating..." : "Yes, Confirm"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main >
     );
 }

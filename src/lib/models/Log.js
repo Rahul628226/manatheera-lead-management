@@ -10,9 +10,13 @@ const LogSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    leadId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Lead'
+    },
     action: {
         type: String,
-        enum: ['login', 'logout', 'session_active'],
+        enum: ['login', 'logout', 'session_active', 'lead_created', 'lead_updated', 'lead_deleted', 'followup_created', 'followup_updated', 'followup_deleted'],
         required: true
     },
     details: {

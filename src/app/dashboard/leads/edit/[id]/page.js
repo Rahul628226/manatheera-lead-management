@@ -10,6 +10,7 @@ export default function EditLead() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [events, setEvents] = useState([]);
+    const [availableFacilities, setAvailableFacilities] = useState([]);
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -27,15 +28,19 @@ export default function EditLead() {
         checkInDate: "",
         checkOutDate: "",
         guests: 0,
-        infants: 0,
         children: 0,
-        pets: 0,
         notes: ""
     });
 
     useEffect(() => {
-        fetchLead();
-        fetchEvents();
+        const fetchData = async () => {
+            await Promise.all([
+                fetchLead(),
+                fetchEvents(),
+                fetchFacilities()
+            ]);
+        };
+        fetchData();
     }, [id]);
 
     const fetchEvents = async () => {
@@ -47,6 +52,18 @@ export default function EditLead() {
             }
         } catch (err) {
             console.error("Failed to fetch events");
+        }
+    };
+
+    const fetchFacilities = async () => {
+        try {
+            const res = await fetch("/api/facilities");
+            const data = await res.json();
+            if (res.ok) {
+                setAvailableFacilities(data.data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch facilities");
         }
     };
 
@@ -81,6 +98,13 @@ export default function EditLead() {
                     formattedData.checkOutDate = localDate.toISOString().split('T')[0];
                 }
 
+                // Handle populated facilities - convert to IDs for the form
+                if (formattedData.facilities) {
+                    formattedData.facilities = formattedData.facilities.map(f =>
+                        typeof f === 'object' ? f._id : f
+                    );
+                }
+
                 setFormData(formattedData);
             } else {
                 setError("Failed to load lead details.");
@@ -95,6 +119,17 @@ export default function EditLead() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleFacilityChange = (facilityId) => {
+        setFormData(prev => {
+            const current = prev.facilities || [];
+            if (current.includes(facilityId)) {
+                return { ...prev, facilities: current.filter(id => id !== facilityId) };
+            } else {
+                return { ...prev, facilities: [...current, facilityId] };
+            }
+        });
     };
 
     const handleSave = async (e) => {
@@ -232,11 +267,11 @@ export default function EditLead() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-[#111718]">Phone *</label>
+                                        <label className="text-sm font-bold text-[#111718]">Phone</label>
                                         <input
                                             name="phone" value={formData.phone} onChange={handleChange}
                                             className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/5 focus:bg-white outline-none"
-                                            type="tel" required
+                                            type="tel"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -250,11 +285,10 @@ export default function EditLead() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-[#111718]">Event Preference *</label>
+                                    <label className="text-sm font-bold text-[#111718]">Event Preference</label>
                                     <select
                                         name="event" value={formData.event} onChange={handleChange}
                                         className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium outline-none appearance-none cursor-pointer"
-                                        required
                                     >
                                         <option value="">Select Event</option>
                                         {events.map(e => (
@@ -267,27 +301,28 @@ export default function EditLead() {
                             <div className="space-y-8">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-[#111718]">Lead Source *</label>
+                                        <label className="text-sm font-bold text-[#111718]">Lead Source</label>
                                         <select
                                             name="source" value={formData.source} onChange={handleChange}
                                             className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium outline-none appearance-none cursor-pointer"
-                                            required
                                         >
+                                            <option value="">Select Source</option>
                                             <option value="facebook">Facebook</option>
                                             <option value="instagram">Instagram</option>
                                             <option value="whatsapp">WhatsApp</option>
                                             <option value="website">Website</option>
                                             <option value="direct-call">Direct Call</option>
                                             <option value="walk-in">Walk-in</option>
+                                            <option value="referral">Referral</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-[#111718]">Lead Status *</label>
+                                        <label className="text-sm font-bold text-[#111718]">Lead Status</label>
                                         <select
                                             name="status" value={formData.status} onChange={handleChange}
                                             className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium outline-none appearance-none cursor-pointer"
-                                            required
                                         >
+                                            <option value="">Select Status</option>
                                             <option value="new">New Inquiry</option>
                                             <option value="contacted">Contacted</option>
                                             <option value="negotiating">Negotiating</option>
@@ -379,24 +414,36 @@ export default function EditLead() {
                                         />
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase text-[#618389]">Guests</label>
                                         <input name="guests" value={formData.guests} onChange={handleChange} className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-2 text-center text-sm font-bold outline-none" type="number" min="0" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-[#618389]">Infants</label>
-                                        <input name="infants" value={formData.infants} onChange={handleChange} className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-2 text-center text-sm font-bold outline-none" type="number" min="0" />
-                                    </div>
-                                    <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase text-[#618389]">Children</label>
                                         <input name="children" value={formData.children} onChange={handleChange} className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-2 text-center text-sm font-bold outline-none" type="number" min="0" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-[#618389]">Pets</label>
-                                        <input name="pets" value={formData.pets} onChange={handleChange} className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-2 text-center text-sm font-bold outline-none" type="number" min="0" />
-                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-8 border-t border-[#f0f4f4]">
+                            <h3 className="text-xs font-black text-[#618389] uppercase tracking-widest mb-6">Facilities Requested</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {availableFacilities.map(facility => (
+                                    <label key={facility._id} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${(formData.facilities || []).includes(facility._id) ? 'bg-primary/5 border-primary text-primary shadow-sm' : 'bg-[#f6f8f8] border-[#dbe4e6] text-[#618389] hover:border-slate-300'}`}>
+                                        <div className={`size-5 rounded border flex items-center justify-center transition-all ${(formData.facilities || []).includes(facility._id) ? 'bg-primary border-primary text-white' : 'bg-white border-[#dbe4e6]'}`}>
+                                            {(formData.facilities || []).includes(facility._id) && <span className="material-symbols-outlined text-[14px] font-bold">check</span>}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={(formData.facilities || []).includes(facility._id)}
+                                            onChange={() => handleFacilityChange(facility._id)}
+                                        />
+                                        <span className="text-xs font-bold">{facility.name}</span>
+                                    </label>
+                                ))}
                             </div>
                         </div>
 

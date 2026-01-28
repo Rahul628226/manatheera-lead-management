@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Lead from '@/lib/models/Lead';
 import User from '@/lib/models/User';
+import Log from '@/lib/models/Log';
 import jwt from 'jsonwebtoken';
 
 async function verifyAuth(req) {
@@ -35,11 +36,7 @@ export async function POST(req, { params }) {
 
         if (!lead) return NextResponse.json({ message: 'Lead not found' }, { status: 404 });
 
-        // Access control: Staff can only log for their own leads
-        const ownerId = lead.owner?._id ? lead.owner._id.toString() : lead.owner?.toString();
-        if (user.role === 'staff' && ownerId !== user._id.toString()) {
-            return NextResponse.json({ message: 'Access denied' }, { status: 403 });
-        }
+        // Access control: Staff can now log for all leads
 
         lead.followUps.push({
             type: type || 'note',
@@ -54,6 +51,17 @@ export async function POST(req, { params }) {
         }
 
         await lead.save();
+
+        // Log activity
+        await Log.create({
+            userId: user._id,
+            username: user.username,
+            leadId: id,
+            action: 'followup_created',
+            details: `Follow-up logged (${type}): ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+            ipAddress: req.headers.get('x-forwarded-for') || req.ip,
+            userAgent: req.headers.get('user-agent')
+        });
 
         // Return the updated lead with populated agents
         const updatedLead = await Lead.findById(id).populate('followUps.agent', 'fullName username');
@@ -80,11 +88,7 @@ export async function PATCH(req, { params }) {
 
         if (!lead) return NextResponse.json({ message: 'Lead not found' }, { status: 404 });
 
-        // Access control: Staff can only edit their own leads' notes
-        const ownerId = lead.owner?._id ? lead.owner._id.toString() : lead.owner?.toString();
-        if (user.role === 'staff' && ownerId !== user._id.toString()) {
-            return NextResponse.json({ message: 'Access denied' }, { status: 403 });
-        }
+        // Access control: Staff can now edit logs on any lead
 
         const followUp = lead.followUps.id(followUpId); // usage of mongoose subdoc id method
         if (!followUp) {
@@ -93,6 +97,17 @@ export async function PATCH(req, { params }) {
 
         followUp.content = content;
         await lead.save();
+
+        // Log activity
+        await Log.create({
+            userId: user._id,
+            username: user.username,
+            leadId: id,
+            action: 'followup_updated',
+            details: `Follow-up updated: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+            ipAddress: req.headers.get('x-forwarded-for') || req.ip,
+            userAgent: req.headers.get('user-agent')
+        });
 
         const updatedLead = await Lead.findById(id).populate('followUps.agent', 'fullName username');
         return NextResponse.json({ status: 'success', data: updatedLead.followUps });

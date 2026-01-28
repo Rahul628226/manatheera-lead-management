@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Lead from '@/lib/models/Lead';
 import User from '@/lib/models/User';
+import Log from '@/lib/models/Log';
 import jwt from 'jsonwebtoken';
 
 async function verifyAuth(req) {
@@ -41,10 +42,7 @@ export async function GET(req) {
 
         let query = {};
 
-        // Role-based access: staff only see their own leads
-        if (user.role === 'staff') {
-            query.owner = user._id;
-        }
+        // Removed staff filter: Staff can see all leads now
 
         if (search) {
             query.$or = [
@@ -96,7 +94,8 @@ export async function GET(req) {
             .sort(sortQuery)
             .skip(skip)
             .limit(limit)
-            .populate('owner', 'fullName username role');
+            .populate('owner', 'fullName username role')
+            .populate('createdBy', 'fullName username role');
 
         return NextResponse.json({
             status: 'success',
@@ -118,10 +117,29 @@ export async function POST(req) {
         await dbConnect();
         const body = await req.json();
 
-        // Automatically set the lead owner to the logged-in user
+        // Clean empty strings from body to avoid validation errors for enums
+        Object.keys(body).forEach(key => {
+            if (body[key] === "" || body[key] === null) {
+                delete body[key];
+            }
+        });
+
+        // Track both owner and creator
         const newLead = await Lead.create({
             ...body,
-            owner: user._id
+            owner: user._id,
+            createdBy: user._id
+        });
+
+        // Log activity
+        await Log.create({
+            userId: user._id,
+            username: user.username,
+            leadId: newLead._id,
+            action: 'lead_created',
+            details: `Lead created for ${newLead.firstName} ${newLead.lastName}`,
+            ipAddress: req.headers.get('x-forwarded-for') || req.ip,
+            userAgent: req.headers.get('user-agent')
         });
 
         return NextResponse.json({

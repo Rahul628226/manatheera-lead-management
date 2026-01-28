@@ -36,15 +36,13 @@ const LeadSchema = new mongoose.Schema({
         lowercase: true
     },
     phone: {
-        type: String,
-        required: [true, 'Phone number is required']
+        type: String
     },
     mobile: {
         type: String
     },
     event: {
         type: String,
-        required: [true, 'Event selection is required'],
         trim: true
     },
     occasion: {
@@ -53,8 +51,7 @@ const LeadSchema = new mongoose.Schema({
     },
     source: {
         type: String,
-        enum: ['facebook', 'instagram', 'whatsapp', 'website', 'direct-call', 'walk-in', 'referral'],
-        required: true
+        enum: ['facebook', 'instagram', 'whatsapp', 'website', 'direct-call', 'walk-in', 'referral']
     },
     status: {
         type: String,
@@ -76,21 +73,17 @@ const LeadSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    infants: {
-        type: Number,
-        default: 0
-    },
     children: {
-        type: Number,
-        default: 0
-    },
-    pets: {
         type: Number,
         default: 0
     },
     notes: {
         type: String
     },
+    facilities: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Facility'
+    }],
     nextCallDate: {
         type: Date
     },
@@ -110,6 +103,10 @@ const LeadSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 }, { timestamps: true });
 

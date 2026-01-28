@@ -113,8 +113,8 @@ export default function LeadsPage() {
 
     const canManageLead = (lead) => {
         if (!currentUser) return false;
-        if (currentUser.role === 'admin' || currentUser.role === 'developer') return true;
-        return lead.owner?._id === currentUser._id || lead.owner === currentUser._id;
+        // All roles can manage leads now
+        return true;
     };
 
     return (
@@ -142,7 +142,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Stats Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-slate-500 text-[10px] font-black uppercase tracking-wider">Total Leads</span>
@@ -181,19 +181,6 @@ export default function LeadsPage() {
                     <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-black text-slate-900">{stats.conversionRate}%</span>
                         <span className="text-[10px] font-bold text-slate-400">Won Pipeline</span>
-                    </div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-slate-500 text-[10px] font-black uppercase tracking-wider">Avg. Time</span>
-                        <div className="size-8 bg-slate-100 text-slate-500 rounded-lg flex items-center justify-center">
-                            <span className="material-symbols-outlined text-xl">timer</span>
-                        </div>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black text-slate-900">14m</span>
-                        <span className="text-[10px] font-bold text-red-400">-5% faster</span>
                     </div>
                 </div>
             </div>
@@ -278,7 +265,7 @@ export default function LeadsPage() {
                         <option value="warm">⚡ Warm Leads</option>
                         <option value="contacted">Contacted</option>
                         <option value="negotiating">Negotiating</option>
-                        <option value="closed-won">✅ Closed Won</option>
+                        <option value="closed-won">Closed Won</option>
                         <option value="closed-lost">❌ Closed Lost</option>
                     </select>
 
@@ -369,11 +356,14 @@ export default function LeadsPage() {
                                     </td>
                                     <td className="p-5">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-sm ${lead.status === 'hot' ? 'bg-primary text-white border-primary' :
-                                            lead.status === 'warm' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                                lead.status === 'cold' ? 'bg-slate-100 text-slate-600 border-slate-200' :
-                                                    'bg-slate-50 text-slate-500 border-slate-100'
+                                            lead.status === 'closed-won' ? 'bg-emerald-500 text-white border-emerald-600' :
+                                                lead.status === 'closed-lost' ? 'bg-rose-500 text-white border-rose-600' :
+                                                    lead.status === 'warm' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                                        lead.status === 'cold' ? 'bg-slate-100 text-slate-600 border-slate-200' :
+                                                            'bg-slate-50 text-slate-500 border-slate-100'
                                             }`}>
-                                            {lead.status === 'hot' ? '🔥 ' : ''}{lead.status.replace('-', ' ')}
+                                            {lead.status === 'hot' ? '🔥 ' :
+                                                lead.status === 'closed-lost' ? '❌ ' : ''}{lead.status.replace('-', ' ')}
                                         </span>
                                     </td>
                                     <td className="p-5">

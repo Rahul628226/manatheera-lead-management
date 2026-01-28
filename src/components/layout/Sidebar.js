@@ -32,6 +32,13 @@ export default function Sidebar() {
             href: "/dashboard/events",
             active: pathname === "/dashboard/events"
         });
+        // Add Facilities management
+        navItems.push({
+            name: "Manage Facilities",
+            icon: "home_repair_service",
+            href: "/dashboard/facilities",
+            active: pathname === "/dashboard/facilities"
+        });
         // Add Activity Logs
         navItems.push({
             name: "Activity Logs",

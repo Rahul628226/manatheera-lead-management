@@ -8,6 +8,7 @@ export default function CreateLead() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [events, setEvents] = useState([]);
+    const [availableFacilities, setAvailableFacilities] = useState([]);
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -25,25 +26,29 @@ export default function CreateLead() {
         checkInDate: "",
         checkOutDate: "",
         guests: 0,
-        infants: 0,
         children: 0,
-        pets: 0,
+        facilities: [],
         notes: ""
     });
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchData = async () => {
             try {
-                const res = await fetch("/api/events");
-                const data = await res.json();
-                if (res.ok) {
-                    setEvents(data.data);
-                }
+                const [eventsRes, facilitiesRes] = await Promise.all([
+                    fetch("/api/events"),
+                    fetch("/api/facilities")
+                ]);
+
+                const eventsData = await eventsRes.json();
+                const facilitiesData = await facilitiesRes.json();
+
+                if (eventsRes.ok) setEvents(eventsData.data);
+                if (facilitiesRes.ok) setAvailableFacilities(facilitiesData.data);
             } catch (err) {
-                console.error("Failed to fetch events");
+                console.error("Failed to fetch data");
             }
         };
-        fetchEvents();
+        fetchData();
     }, []);
 
     const handleChange = (e) => {
@@ -51,6 +56,16 @@ export default function CreateLead() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleFacilityChange = (facilityId) => {
+        setFormData(prev => {
+            const current = prev.facilities || [];
+            if (current.includes(facilityId)) {
+                return { ...prev, facilities: current.filter(id => id !== facilityId) };
+            } else {
+                return { ...prev, facilities: [...current, facilityId] };
+            }
+        });
+    };
     const handleSave = async (e, redirect = true) => {
         if (e) e.preventDefault();
         setLoading(true);
@@ -95,8 +110,8 @@ export default function CreateLead() {
                     setFormData({
                         firstName: "", lastName: "", email: "", phone: "", mobile: "",
                         event: "", occasion: "", source: "", status: "", quality: "C",
-                        nextCallDate: "", nextCallNotify: false, checkInDate: "", checkOutDate: "",
-                        guests: 0, infants: 0, children: 0, pets: 0, notes: ""
+                        nextCallDate: "", nextCallNotify: false, nextCallGoal: "", checkInDate: "", checkOutDate: "",
+                        guests: 0, children: 0, facilities: [], notes: ""
                     });
                     alert("Lead created successfully!");
                 }
@@ -197,12 +212,12 @@ export default function CreateLead() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111718] flex items-center gap-1">
-                                            Phone <span className="text-red-500">*</span>
+                                            Phone
                                         </label>
                                         <input
                                             name="phone" value={formData.phone} onChange={handleChange}
                                             className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all outline-none"
-                                            placeholder="+1 (555) 000-0000" type="tel" required
+                                            placeholder="+1 (555) 000-0000" type="tel"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -217,12 +232,11 @@ export default function CreateLead() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-[#111718] flex items-center gap-1">
-                                        Event Preference <span className="text-red-500">*</span>
+                                        Event Preference
                                     </label>
                                     <select
                                         name="event" value={formData.event} onChange={handleChange}
                                         className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all outline-none appearance-none cursor-pointer"
-                                        required
                                     >
                                         <option value="">Select Event</option>
                                         {events.map(e => (
@@ -237,12 +251,11 @@ export default function CreateLead() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111718] flex items-center gap-1">
-                                            Lead Source <span className="text-red-500">*</span>
+                                            Lead Source
                                         </label>
                                         <select
                                             name="source" value={formData.source} onChange={handleChange}
                                             className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all outline-none appearance-none cursor-pointer"
-                                            required
                                         >
                                             <option value="">Select Source</option>
                                             <option value="facebook">Facebook</option>
@@ -256,12 +269,11 @@ export default function CreateLead() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111718] flex items-center gap-1">
-                                            Lead Status <span className="text-red-500">*</span>
+                                            Lead Status
                                         </label>
                                         <select
                                             name="status" value={formData.status} onChange={handleChange}
                                             className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-4 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all outline-none appearance-none cursor-pointer"
-                                            required
                                         >
                                             <option value="">Select Status</option>
                                             <option value="new">New Inquiry</option>
@@ -355,19 +367,11 @@ export default function CreateLead() {
                                         />
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase text-[#618389]">Guests</label>
                                         <input
                                             name="guests" value={formData.guests} onChange={handleChange}
-                                            className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-2 text-center text-sm font-bold focus:ring-2 focus:ring-primary/50 outline-none"
-                                            type="number" min="0"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-[#618389]">Infants</label>
-                                        <input
-                                            name="infants" value={formData.infants} onChange={handleChange}
                                             className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-2 text-center text-sm font-bold focus:ring-2 focus:ring-primary/50 outline-none"
                                             type="number" min="0"
                                         />
@@ -380,15 +384,27 @@ export default function CreateLead() {
                                             type="number" min="0"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-[#618389]">Pets</label>
-                                        <input
-                                            name="pets" value={formData.pets} onChange={handleChange}
-                                            className="w-full h-12 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl px-2 text-center text-sm font-bold focus:ring-2 focus:ring-primary/50 outline-none"
-                                            type="number" min="0"
-                                        />
-                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-8 border-t border-[#f0f4f4]">
+                            <h3 className="text-xs font-black text-[#618389] uppercase tracking-widest mb-6">Facilities Requested</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {availableFacilities.map(facility => (
+                                    <label key={facility._id} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${formData.facilities.includes(facility._id) ? 'bg-primary/5 border-primary text-primary shadow-sm' : 'bg-[#f6f8f8] border-[#dbe4e6] text-[#618389] hover:border-slate-300'}`}>
+                                        <div className={`size-5 rounded border flex items-center justify-center transition-all ${formData.facilities.includes(facility._id) ? 'bg-primary border-primary text-white' : 'bg-white border-[#dbe4e6]'}`}>
+                                            {formData.facilities.includes(facility._id) && <span className="material-symbols-outlined text-[14px] font-bold">check</span>}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={formData.facilities.includes(facility._id)}
+                                            onChange={() => handleFacilityChange(facility._id)}
+                                        />
+                                        <span className="text-xs font-bold">{facility.name}</span>
+                                    </label>
+                                ))}
                             </div>
                         </div>
 
@@ -404,7 +420,7 @@ export default function CreateLead() {
                 </div>
 
                 <div className="mt-8 flex items-center justify-between opacity-70">
-                    <p className="text-xs text-[#618389] italic font-medium">Fields marked with * are essential for healthy lead tracking.</p>
+                    <p className="text-xs text-[#618389] italic font-medium">Fields marked with * are required for lead tracking.</p>
                     <div className="flex items-center gap-2 text-primary font-bold text-xs cursor-pointer hover:underline transition-all">
                         <span className="material-symbols-outlined text-sm">help</span>
                         <span>Form Help Center</span>
