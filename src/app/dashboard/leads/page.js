@@ -229,6 +229,7 @@ export default function LeadsPage() {
                             <option value="createdAt">Created On</option>
                             <option value="checkInDate">Check-in</option>
                             <option value="checkOutDate">Check-out</option>
+                            <option value="nextCallDate">Follow-up</option>
                             {(currentUser?.role === 'admin' || currentUser?.role === 'developer') && (
                                 <option value="recentTask">Recent Task</option>
                             )}
