@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TablePagination from "@/components/ui/TablePagination";
+import * as XLSX from 'xlsx';
 
 export default function LeadsPage() {
     const router = useRouter();
@@ -138,6 +139,46 @@ export default function LeadsPage() {
         return true;
     };
 
+    const handleExport = async () => {
+        try {
+            setLoading(true);
+            const query = new URLSearchParams({
+                search: filters.search,
+                status: filters.status,
+                source: filters.source,
+                startDate: filters.startDate,
+                endDate: filters.endDate,
+                dateType: filters.dateType,
+                staffSearch: filters.staffSearch,
+                showDeleted: filters.showDeleted
+            }).toString();
+
+            const response = await fetch(`/api/leads/export?${query}`);
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                const worksheet = XLSX.utils.json_to_sheet(data.data);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+                // Adjust column widths
+                const wscols = Object.keys(data.data[0] || {}).map(key => ({
+                    wch: Math.max(key.length, ...data.data.map(row => String(row[key] || '').length)) + 2
+                }));
+                worksheet['!cols'] = wscols;
+
+                XLSX.writeFile(workbook, `leads_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+            } else {
+                alert("Failed to export leads data.");
+            }
+        } catch (err) {
+            console.error("Export failed", err);
+            alert("An error occurred during export.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <main className="flex flex-1 flex-col px-4 md:px-10 lg:px-20 py-6 w-full max-w-[1600px] mx-auto">
             {/* Breadcrumbs */}
@@ -153,13 +194,23 @@ export default function LeadsPage() {
                     <h1 className="text-slate-900 text-3xl font-black tracking-tight">Lead Pipeline</h1>
                     <p className="text-slate-500 text-sm font-medium mt-1">Manage and convert your resort inquiries</p>
                 </div>
-                <Link
-                    href="/dashboard/leads/create"
-                    className="flex min-w-[140px] items-center justify-center gap-2 rounded-xl h-12 px-6 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/25 hover:brightness-110 transition-all active:scale-95"
-                >
-                    <span className="material-symbols-outlined font-bold">add</span>
-                    <span>Add New Lead</span>
-                </Link>
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={handleExport}
+                        disabled={loading}
+                        className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-white border border-slate-200 text-slate-700 text-sm font-bold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span className="material-symbols-outlined text-xl">download</span>
+                        <span>{loading ? 'Exporting...' : 'Export Excel'}</span>
+                    </button>
+                    <Link
+                        href="/dashboard/leads/create"
+                        className="flex min-w-[140px] items-center justify-center gap-2 rounded-xl h-12 px-6 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/25 hover:brightness-110 transition-all active:scale-95"
+                    >
+                        <span className="material-symbols-outlined font-bold">add</span>
+                        <span>Add New Lead</span>
+                    </Link>
+                </div>
             </div>
 
             {/* Stats Section */}
