@@ -23,7 +23,8 @@ export default function LeadsPage() {
         startDate: "",
         endDate: "",
         dateType: "createdAt",
-        staffSearch: ""
+        staffSearch: "",
+        showDeleted: false
     });
     const [pagination, setPagination] = useState({
         page: 1,
@@ -42,7 +43,7 @@ export default function LeadsPage() {
 
     useEffect(() => {
         fetchLeads(pagination.page);
-    }, [pagination.page, filters.status, filters.source, filters.startDate, filters.endDate, filters.dateType]);
+    }, [pagination.page, filters.status, filters.source, filters.startDate, filters.endDate, filters.dateType, filters.showDeleted]);
 
     const fetchStats = async () => {
         try {
@@ -68,7 +69,8 @@ export default function LeadsPage() {
                 startDate: filters.startDate,
                 endDate: filters.endDate,
                 dateType: filters.dateType,
-                staffSearch: filters.staffSearch
+                staffSearch: filters.staffSearch,
+                showDeleted: filters.showDeleted
             }).toString();
 
             const response = await fetch(`/api/leads?${query}`);
@@ -108,6 +110,25 @@ export default function LeadsPage() {
             }
         } catch (err) {
             console.error("Delete failed");
+        }
+    };
+
+    const handleRestore = async (id) => {
+        if (!confirm("Restore this lead to active pipeline?")) return;
+        try {
+            const response = await fetch(`/api/leads/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isDeleted: false })
+            });
+            if (response.ok) {
+                fetchLeads(pagination.page);
+                fetchStats();
+            } else {
+                alert("Failed to restore lead.");
+            }
+        } catch (err) {
+            console.error("Restore failed");
         }
     };
 
@@ -288,15 +309,33 @@ export default function LeadsPage() {
                         <option value="referral">Referral</option>
                     </select>
 
-                    {(filters.status || filters.source || filters.search || filters.startDate || filters.endDate || filters.staffSearch) && (
+                    {(filters.status || filters.source || filters.search || filters.startDate || filters.endDate || filters.staffSearch || filters.showDeleted) && (
                         <button
                             onClick={() => {
-                                setFilters({ search: "", status: "", source: "", startDate: "", endDate: "", dateType: "createdAt", staffSearch: "" });
+                                setFilters({ search: "", status: "", source: "", startDate: "", endDate: "", dateType: "createdAt", staffSearch: "", showDeleted: false });
                                 setPagination(prev => ({ ...prev, page: 1 }));
                             }}
                             className="px-4 text-xs font-black text-red-500 hover:underline"
                         >
                             Reset
+                        </button>
+                    )}
+
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'developer') && (
+                        <button
+                            onClick={() => {
+                                setFilters(prev => ({ ...prev, showDeleted: !prev.showDeleted }));
+                                setPagination(prev => ({ ...prev, page: 1 }));
+                            }}
+                            className={`flex items-center gap-2 h-11 px-4 rounded-xl border transition-all text-xs font-black ${filters.showDeleted
+                                ? 'bg-red-50 border-red-200 text-red-600 shadow-sm shadow-red-100'
+                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                            title={filters.showDeleted ? "Back to Active Leads" : "View Deleted Leads"}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">
+                                {filters.showDeleted ? 'restore_from_trash' : 'delete_sweep'}
+                            </span>
+                            <span>{filters.showDeleted ? 'Viewing Deleted' : 'Bin'}</span>
                         </button>
                     )}
                 </div>
@@ -421,13 +460,23 @@ export default function LeadsPage() {
                                                     >
                                                         <span className="material-symbols-outlined text-lg">edit</span>
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(lead._id)}
-                                                        className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-500 transition-all"
-                                                        title="Delete Lead"
-                                                    >
-                                                        <span className="material-symbols-outlined text-lg">delete</span>
-                                                    </button>
+                                                    {filters.showDeleted ? (
+                                                        <button
+                                                            onClick={() => handleRestore(lead._id)}
+                                                            className="p-1.5 rounded-lg text-slate-500 hover:bg-emerald-50 hover:text-emerald-500 transition-all font-bold"
+                                                            title="Restore Lead"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg">restore_from_trash</span>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleDelete(lead._id)}
+                                                            className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-500 transition-all"
+                                                            title="Delete Lead"
+                                                        >
+                                                            <span className="material-symbols-outlined text-lg">delete</span>
+                                                        </button>
+                                                    )}
                                                 </>
                                             )}
                                         </div>

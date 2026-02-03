@@ -39,8 +39,17 @@ export async function GET(req) {
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
         const dateType = searchParams.get('dateType') || 'createdAt'; // Default to creation date
+        const showDeleted = searchParams.get('showDeleted') === 'true';
 
         let query = {};
+
+        // Hard filter by isDeleted status unless specifically requested by authorized user
+        if (showDeleted && (user.role === 'admin' || user.role === 'developer')) {
+            // Include deleted leads (or show only them? User says "view deleted user", usually implies "including" or "only". Let's go with "only" if they toggle it, or maybe just include. User said "option to view deleted user". I'll make it filter only deleted ones if showDeleted is true, or only non-deleted if false. This is cleaner.)
+            query.isDeleted = true;
+        } else {
+            query.isDeleted = { $ne: true };
+        }
 
         // Removed staff filter: Staff can see all leads now
 

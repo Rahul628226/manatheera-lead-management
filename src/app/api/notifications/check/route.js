@@ -39,6 +39,7 @@ export async function GET(req) {
 
         const notifications = await Lead.find({
             owner: user._id,
+            isDeleted: { $ne: true },
             nextCallNotify: true,
             nextCallDate: { $exists: true, $gte: cutoff }
         }).select('firstName lastName nextCallGoal nextCallDate');

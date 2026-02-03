@@ -26,7 +26,8 @@ export async function GET(req) {
 
         await dbConnect();
 
-        let query = {};
+        // Always exclude deleted leads from general stats
+        let query = { isDeleted: { $ne: true } };
         // Removed staff filter: Staff see all lead stats now
 
         const totalLeads = await Lead.countDocuments(query);

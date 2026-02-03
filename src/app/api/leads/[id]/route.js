@@ -46,6 +46,11 @@ export async function GET(req, { params }) {
 
         if (!lead) return NextResponse.json({ message: 'Lead not found' }, { status: 404 });
 
+        // If lead is deleted, only Admin/Developer can see it
+        if (lead.isDeleted && user.role !== 'admin' && user.role !== 'developer') {
+            return NextResponse.json({ message: 'Lead not found' }, { status: 404 });
+        }
+
         // Access control: Staff can see all leads now
 
         return NextResponse.json({ status: 'success', data: lead });
@@ -84,6 +89,11 @@ export async function PATCH(req, { params }) {
 
         if (!lead) return NextResponse.json({ message: 'Lead not found' }, { status: 404 });
 
+        // If lead is deleted, only Admin/Developer can manage it
+        if (lead.isDeleted && user.role !== 'admin' && user.role !== 'developer') {
+            return NextResponse.json({ message: 'Access denied' }, { status: 403 });
+        }
+
         // Access control: Staff can manage all leads now
 
         const updatedLead = await Lead.findByIdAndUpdate(id, body, { new: true }).lean();
@@ -119,7 +129,8 @@ export async function DELETE(req, { params }) {
 
         // Access control: Staff can manage all leads now
 
-        await Lead.findByIdAndDelete(id);
+        lead.isDeleted = true;
+        await lead.save();
 
         // Log activity
         await Log.create({
