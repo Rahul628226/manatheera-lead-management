@@ -33,18 +33,65 @@ export default function LeadsPage() {
         total: 0,
         limit: 10
     });
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
+        const isBackFromDetail = sessionStorage.getItem("leads_backToLeads") === "true";
+        const savedFilters = sessionStorage.getItem("leadsFilters");
+        const savedPagination = sessionStorage.getItem("leadsPagination");
+
+        if (isBackFromDetail && savedFilters) {
+            try {
+                const parsed = JSON.parse(savedFilters);
+                setFilters(prev => ({ ...prev, ...parsed }));
+            } catch (e) { console.error("Failed to parse filters", e); }
+        } else if (!isBackFromDetail) {
+            // Reset state if not returning from detail
+            sessionStorage.removeItem("leadsFilters");
+            sessionStorage.removeItem("leadsPagination");
+        }
+
+        if (isBackFromDetail && savedPagination) {
+            try {
+                const parsed = JSON.parse(savedPagination);
+                setPagination(prev => ({ ...prev, page: parsed.page || 1 }));
+            } catch (e) { console.error("Failed to parse pagination", e); }
+        }
+
+        // Clear flags
+        sessionStorage.removeItem("leads_wasOnLeads");
+        sessionStorage.removeItem("leads_fromLeads");
+        sessionStorage.removeItem("leads_backToLeads");
+
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
             setCurrentUser(JSON.parse(storedUser));
         }
         fetchStats();
+        setIsReady(true);
+
+        return () => {
+            sessionStorage.setItem("leads_wasOnLeads", "true");
+        };
     }, []);
 
     useEffect(() => {
-        fetchLeads(pagination.page);
-    }, [pagination.page, filters.status, filters.source, filters.startDate, filters.endDate, filters.dateType, filters.showDeleted]);
+        if (isReady) {
+            sessionStorage.setItem("leadsFilters", JSON.stringify(filters));
+        }
+    }, [filters, isReady]);
+
+    useEffect(() => {
+        if (isReady) {
+            sessionStorage.setItem("leadsPagination", JSON.stringify(pagination));
+        }
+    }, [pagination, isReady]);
+
+    useEffect(() => {
+        if (isReady) {
+            fetchLeads(pagination.page);
+        }
+    }, [isReady, pagination.page, filters.status, filters.source, filters.startDate, filters.endDate, filters.dateType, filters.showDeleted]);
 
     const fetchStats = async () => {
         try {
@@ -295,7 +342,10 @@ export default function LeadsPage() {
                         <span className="material-symbols-outlined text-[18px] text-slate-500">calendar_month</span>
                         <select
                             value={filters.dateType}
-                            onChange={(e) => setFilters({ ...filters, dateType: e.target.value })}
+                            onChange={(e) => {
+                                setFilters({ ...filters, dateType: e.target.value });
+                                setPagination(prev => ({ ...prev, page: 1 }));
+                            }}
                             className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
                         >
                             <option value="createdAt">Created On</option>
@@ -310,7 +360,10 @@ export default function LeadsPage() {
                         <input
                             type="date"
                             value={filters.startDate}
-                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                            onChange={(e) => {
+                                setFilters({ ...filters, startDate: e.target.value });
+                                setPagination(prev => ({ ...prev, page: 1 }));
+                            }}
                             className="bg-transparent text-[10px] font-bold text-slate-600 outline-none cursor-pointer"
                             title="Start Date"
                         />
@@ -318,7 +371,10 @@ export default function LeadsPage() {
                         <input
                             type="date"
                             value={filters.endDate}
-                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                            onChange={(e) => {
+                                setFilters({ ...filters, endDate: e.target.value });
+                                setPagination(prev => ({ ...prev, page: 1 }));
+                            }}
                             className="bg-transparent text-[10px] font-bold text-slate-600 outline-none cursor-pointer"
                             title="End Date"
                         />

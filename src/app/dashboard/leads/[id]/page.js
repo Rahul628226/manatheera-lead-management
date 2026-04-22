@@ -106,6 +106,21 @@ export default function LeadDetailPage() {
     };
 
     useEffect(() => {
+        // Handshake: If we just came from the leads list, mark this session as "from leads"
+        if (sessionStorage.getItem("leads_wasOnLeads") === "true") {
+            sessionStorage.setItem("leads_fromLeads", "true");
+            sessionStorage.removeItem("leads_wasOnLeads");
+        }
+        return () => {
+            // Handshake: If we were "from leads", mark that we are going back
+            if (sessionStorage.getItem("leads_fromLeads") === "true") {
+                sessionStorage.setItem("leads_backToLeads", "true");
+                sessionStorage.removeItem("leads_fromLeads");
+            }
+        };
+    }, []);
+
+    useEffect(() => {
         fetchLead();
         // Load tasks specifically for this lead from local storage
         const loadTasks = () => {
