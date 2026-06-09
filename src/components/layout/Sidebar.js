@@ -18,6 +18,7 @@ export default function Sidebar() {
     const navItems = [
         { name: "Dashboard", icon: "dashboard", href: "/dashboard", active: pathname === "/dashboard" },
         { name: "Leads Pipeline", icon: "leaderboard", href: "/dashboard/leads", active: pathname.startsWith("/dashboard/leads") },
+        { name: "Website Enquiry", icon: "contact_mail", href: "/dashboard/website-enquiry", active: pathname.startsWith("/dashboard/website-enquiry") },
     ];
 
     // Add Admin/Developer specific items

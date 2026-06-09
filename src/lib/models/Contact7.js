@@ -25,6 +25,11 @@ const Contact7Schema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    status: {
+        type: String,
+        enum: ['new', 'reviewed', 'resolved'],
+        default: 'new'
+    },
     isDeleted: {
         type: Boolean,
         default: false
