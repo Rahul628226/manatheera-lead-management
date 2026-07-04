@@ -32,6 +32,60 @@ export default function LeadDetailPage() {
         limit: 10
     });
     const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+
+    const handleSpeechRecognition = () => {
+        if (typeof window === 'undefined') return;
+        const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionClass) {
+            alert("Speech recognition is not supported in your browser. Please try Google Chrome or Safari.");
+            return;
+        }
+
+        if (isListening) {
+            if (window._recognition) {
+                window._recognition.stop();
+            }
+            setIsListening(false);
+        } else {
+            try {
+                const recognition = new SpeechRecognitionClass();
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                recognition.lang = 'en-IN'; // Indian English language optimization
+
+                recognition.onstart = () => {
+                    setIsListening(true);
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[event.results.length - 1][0].transcript;
+                    if (transcript) {
+                        setNewLog(prev => ({
+                            ...prev,
+                            content: prev.content ? `${prev.content.trim()} ${transcript.trim()}` : transcript.trim()
+                        }));
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech recognition error", event.error);
+                    setIsListening(false);
+                };
+
+                recognition.onend = () => {
+                    setIsListening(false);
+                };
+
+                window._recognition = recognition;
+                recognition.start();
+            } catch (err) {
+                console.error("Speech recognition failed to start", err);
+                setIsListening(false);
+            }
+        }
+    };
+
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -355,17 +409,17 @@ export default function LeadDetailPage() {
     const engagement = getEngagementScore();
 
     return (
-        <main className="max-w-[1440px] mx-auto px-6 py-8 w-full">
+        <main className="max-w-[1440px] mx-auto px-4 md:px-6 py-8 pb-24 md:pb-8 w-full">
             {/* Header / Breadcrumbs */}
-            <div className="flex flex-wrap justify-between items-end gap-3 mb-8">
+            <div className="flex flex-wrap justify-between items-start md:items-end gap-4 mb-8">
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
                         <Link href="/dashboard/leads" className="hover:text-primary">Pipeline</Link>
                         <span className="material-symbols-outlined text-xs">chevron_right</span>
                         <span className="font-bold text-slate-900">{lead.firstName} {lead.lastName}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-slate-900 text-4xl font-black leading-tight tracking-tight">{lead.firstName} {lead.lastName}</h1>
+                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                        <h1 className="text-slate-900 text-2xl md:text-4xl font-black leading-tight tracking-tight">{lead.firstName} {lead.lastName}</h1>
                         <span className="bg-primary/10 text-primary text-[10px] font-black px-3 py-1 rounded-full border border-primary/20 uppercase tracking-widest">
                             {lead.status}
                         </span>
@@ -377,7 +431,7 @@ export default function LeadDetailPage() {
                             Category {lead.quality}
                         </span>
                     </div>
-                    <div className="flex items-center gap-4 text-slate-500">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-500">
                         <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
                             <span className="material-symbols-outlined text-base">photo_camera</span> Source: {lead.source}
                         </span>
@@ -386,7 +440,8 @@ export default function LeadDetailPage() {
                         </span>
                     </div>
                 </div>
-                <div className="flex gap-3">
+                {/* Desktop Actions */}
+                <div className="hidden md:flex gap-3">
                     <button
                         onClick={() => setIsScheduleModalOpen(true)}
                         className="flex items-center gap-2 px-6 h-11 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-bold shadow-sm hover:bg-slate-50 transition-all active:scale-95"
@@ -410,30 +465,55 @@ export default function LeadDetailPage() {
                 </div>
             </div>
 
+            {/* Mobile Bottom Navigation Actions */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-t border-[#dbe4e6] px-4 py-3 flex items-center justify-between gap-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe-bottom">
+                <button
+                    onClick={() => setIsScheduleModalOpen(true)}
+                    className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 bg-slate-50 hover:bg-slate-100 active:scale-95 transition-all rounded-xl border border-slate-200 text-slate-700 text-center gap-0.5"
+                >
+                    <span className="material-symbols-outlined text-lg">event_available</span>
+                    <span className="text-[10px] font-black uppercase tracking-tighter">Schedule</span>
+                </button>
+                <button
+                    onClick={() => router.push(`/dashboard/leads/edit/${id}`)}
+                    className="flex-1 flex flex-col items-center justify-center py-1.5 px-2 bg-slate-50 hover:bg-slate-100 active:scale-95 transition-all rounded-xl border border-slate-200 text-slate-700 text-center gap-0.5"
+                >
+                    <span className="material-symbols-outlined text-lg">edit</span>
+                    <span className="text-[10px] font-black uppercase tracking-tighter">Edit Info</span>
+                </button>
+                <button
+                    onClick={() => setIsConvertModalOpen(true)}
+                    className="flex-[1.5] flex items-center justify-center h-11 px-3 bg-primary text-white text-xs font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all rounded-xl gap-1 text-center"
+                >
+                    <span className="material-symbols-outlined text-base">check_circle</span>
+                    <span className="uppercase tracking-wider">Book Now</span>
+                </button>
+            </div>
+
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Left: Info & History */}
                 <div className="lg:col-span-8 flex flex-col gap-6">
                     {/* Tabs Navigation */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-                        <div className="px-6 pt-2">
-                            <div className="flex gap-8 border-b border-slate-100">
+                        <div className="px-4 md:px-6 pt-2">
+                            <div className="flex gap-4 md:gap-8 border-b border-slate-100 overflow-x-auto whitespace-nowrap scrollbar-none">
                                 <button
                                     onClick={() => setActiveTab("details")}
-                                    className={`pb-4 pt-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'details' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                    className={`pb-4 pt-4 text-xs md:text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'details' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                                 >
                                     Details
                                 </button>
                                 <button
                                     onClick={() => setActiveTab("followups")}
-                                    className={`pb-4 pt-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'followups' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                    className={`pb-4 pt-4 text-xs md:text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'followups' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                                 >
                                     Follow-ups ({lead.followUps?.length || 0})
                                 </button>
                                 {(user?.role === 'admin' || user?.role === 'developer') && (
                                     <button
                                         onClick={() => setActiveTab("activity")}
-                                        className={`pb-4 pt-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'activity' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                        className={`pb-4 pt-4 text-xs md:text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'activity' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                                     >
                                         Activity Log
                                     </button>
@@ -443,7 +523,7 @@ export default function LeadDetailPage() {
 
                         {/* Details Tab Content */}
                         {activeTab === 'details' && (
-                            <div className="p-8 space-y-10">
+                            <div className="p-4 md:p-8 space-y-10">
                                 <div>
                                     <div className="flex items-center gap-2 mb-6">
                                         <div className="size-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
@@ -561,7 +641,7 @@ export default function LeadDetailPage() {
 
                         {/* Follow-ups Tab Content */}
                         {activeTab === 'followups' && (
-                            <div className="p-8">
+                            <div className="p-4 md:p-8">
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                                     <h3 className="text-slate-900 text-lg font-black italic">Interaction History</h3>
 
@@ -714,7 +794,7 @@ export default function LeadDetailPage() {
                         )}
 
                         {activeTab === 'activity' && (
-                            <div className="p-8">
+                            <div className="p-4 md:p-8">
                                 <h3 className="text-slate-900 text-lg font-black italic mb-8">System Activity Trail</h3>
                                 <div className="space-y-6">
                                     {activityLogs.length > 0 ? (
@@ -839,13 +919,29 @@ export default function LeadDetailPage() {
                                     </button>
                                 ))}
                             </div>
-                            <textarea
-                                id="new-log"
-                                value={newLog.content}
-                                onChange={(e) => setNewLog({ ...newLog, content: e.target.value })}
-                                placeholder="Write down the details of the conversation..."
-                                className="w-full h-32 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/5 focus:bg-white outline-none transition-all resize-none"
-                            ></textarea>
+                            <div className="relative">
+                                <textarea
+                                    id="new-log"
+                                    value={newLog.content}
+                                    onChange={(e) => setNewLog({ ...newLog, content: e.target.value })}
+                                    placeholder={isListening ? "Listening... Speak now..." : "Write down the details of the conversation..."}
+                                    className="w-full h-32 bg-slate-50 border border-slate-100 rounded-2xl p-4 pr-12 text-sm font-medium focus:ring-2 focus:ring-primary/5 focus:bg-white outline-none transition-all resize-none"
+                                ></textarea>
+                                <button
+                                    type="button"
+                                    onClick={handleSpeechRecognition}
+                                    className={`absolute bottom-4 right-4 size-10 rounded-full flex items-center justify-center transition-all ${
+                                        isListening
+                                            ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700'
+                                    }`}
+                                    title={isListening ? "Stop voice transcription" : "Voice to Note"}
+                                >
+                                    <span className="material-symbols-outlined text-lg">
+                                        mic
+                                    </span>
+                                </button>
+                            </div>
                             <button
                                 disabled={saving || !newLog.content.trim()}
                                 className="w-full h-12 bg-slate-900 text-white rounded-xl text-sm font-black shadow-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
