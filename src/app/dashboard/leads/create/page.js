@@ -31,6 +31,64 @@ export default function CreateLead() {
         notes: ""
     });
 
+    const [listeningTarget, setListeningTarget] = useState(null); // 'nextCallGoal', 'notes', or null
+
+    const handleSpeechRecognition = (target) => {
+        if (typeof window === 'undefined') return;
+        const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionClass) {
+            alert("Speech recognition is not supported in your browser. Please try Google Chrome or Safari.");
+            return;
+        }
+
+        if (listeningTarget === target) {
+            if (window._recognition) {
+                window._recognition.stop();
+            }
+            setListeningTarget(null);
+        } else {
+            if (window._recognition) {
+                window._recognition.stop();
+            }
+            try {
+                const recognition = new SpeechRecognitionClass();
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                recognition.lang = 'en-IN'; // Indian English language optimization
+
+                recognition.onstart = () => {
+                    setListeningTarget(target);
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[event.results.length - 1][0].transcript;
+                    if (transcript) {
+                        setFormData(prev => ({
+                            ...prev,
+                            [target]: prev[target] ? `${prev[target].trim()} ${transcript.trim()}` : transcript.trim()
+                        }));
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech recognition error", event.error);
+                    setListeningTarget(null);
+                };
+
+                recognition.onend = () => {
+                    setListeningTarget(null);
+                };
+
+                window._recognition = recognition;
+                recognition.start();
+            } catch (err) {
+                console.error("Speech recognition failed to start", err);
+                setListeningTarget(null);
+            }
+        }
+    };
+
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -361,11 +419,27 @@ export default function CreateLead() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-[#111718]">Next Follow-up Goal</label>
-                                    <textarea
-                                        name="nextCallGoal" value={formData.nextCallGoal} onChange={handleChange}
-                                        className="w-full h-24 bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all outline-none resize-none"
-                                        placeholder="e.g. Confirm group discount details..."
-                                    ></textarea>
+                                    <div className="relative w-full flex flex-col">
+                                        <textarea
+                                            name="nextCallGoal" value={formData.nextCallGoal} onChange={handleChange}
+                                            className="w-full h-24 block bg-[#f6f8f8] border border-[#dbe4e6] rounded-xl p-4 pr-12 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all outline-none resize-none"
+                                            placeholder={listeningTarget === 'nextCallGoal' ? "Listening... Speak now..." : "e.g. Confirm group discount details..."}
+                                        ></textarea>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSpeechRecognition('nextCallGoal')}
+                                            className={`absolute bottom-3 right-3 size-10 rounded-full flex items-center justify-center transition-all z-10 ${
+                                                listeningTarget === 'nextCallGoal'
+                                                    ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                                                    : 'bg-[#f0f4f4] hover:bg-slate-200 text-slate-500 hover:text-slate-700'
+                                            }`}
+                                            title={listeningTarget === 'nextCallGoal' ? "Stop voice transcription" : "Voice to Note"}
+                                        >
+                                            <span className="material-symbols-outlined text-lg">
+                                                mic
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -434,11 +508,27 @@ export default function CreateLead() {
 
                         <div className="pt-8 border-t border-[#f0f4f4]">
                             <label className="text-sm font-bold text-[#111718] block mb-3">Additional Instructions & Feedback</label>
-                            <textarea
-                                name="notes" value={formData.notes} onChange={handleChange}
-                                className="w-full h-32 bg-[#f6f8f8] border border-[#dbe4e6] rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white outline-none transition-all resize-none"
-                                placeholder="Add any specific guest preferences, dietary requirements, or follow-up notes..."
-                            ></textarea>
+                            <div className="relative w-full flex flex-col">
+                                <textarea
+                                    name="notes" value={formData.notes} onChange={handleChange}
+                                    className="w-full h-32 block bg-[#f6f8f8] border border-[#dbe4e6] rounded-2xl p-4 pr-12 text-sm font-medium focus:ring-2 focus:ring-primary/50 focus:bg-white outline-none transition-all resize-none"
+                                    placeholder={listeningTarget === 'notes' ? "Listening... Speak now..." : "Add any specific guest preferences, dietary requirements, or follow-up notes..."}
+                                ></textarea>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSpeechRecognition('notes')}
+                                    className={`absolute bottom-3 right-3 size-10 rounded-full flex items-center justify-center transition-all z-10 ${
+                                        listeningTarget === 'notes'
+                                            ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                                            : 'bg-[#f0f4f4] hover:bg-slate-200 text-slate-500 hover:text-slate-700'
+                                    }`}
+                                    title={listeningTarget === 'notes' ? "Stop voice transcription" : "Voice to Note"}
+                                >
+                                    <span className="material-symbols-outlined text-lg">
+                                        mic
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
