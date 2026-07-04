@@ -34,6 +34,8 @@ export default function LeadsPage() {
         limit: 10
     });
     const [isReady, setIsReady] = useState(false);
+    const [showMobileFilters, setShowMobileFilters] = useState(false);
+    const [showMobileStats, setShowMobileStats] = useState(false);
 
     useEffect(() => {
         const isBackFromDetail = sessionStorage.getItem("leads_backToLeads") === "true";
@@ -227,7 +229,7 @@ export default function LeadsPage() {
     };
 
     return (
-        <main className="flex flex-1 flex-col px-4 md:px-10 lg:px-20 py-6 w-full max-w-[1600px] mx-auto">
+        <main className="flex flex-1 flex-col px-4 md:px-10 lg:px-20 py-6 w-full max-w-[1600px] mx-auto pb-24 md:pb-6">
             {/* Breadcrumbs */}
             <div className="flex flex-wrap gap-2 py-2 mb-4">
                 <Link href="/dashboard" className="text-slate-500 text-sm font-medium hover:text-primary transition-colors">Home</Link>
@@ -236,32 +238,42 @@ export default function LeadsPage() {
             </div>
 
             {/* Page Heading */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div className="flex justify-between items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-slate-900 text-3xl font-black tracking-tight">Lead Pipeline</h1>
-                    <p className="text-slate-500 text-sm font-medium mt-1">Manage and convert your resort inquiries</p>
+                    <h1 className="text-slate-900 text-2xl md:text-3xl font-black tracking-tight">Lead Pipeline</h1>
+                    <p className="text-slate-500 text-xs md:text-sm font-medium mt-1">Manage and convert your resort inquiries</p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={handleExport}
                         disabled={loading}
-                        className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-white border border-slate-200 text-slate-700 text-sm font-bold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex md:hidden items-center justify-center size-10 rounded-xl bg-white border border-slate-200 text-slate-700 shadow-sm active:scale-95 disabled:opacity-50"
+                        title="Export Excel"
                     >
                         <span className="material-symbols-outlined text-xl">download</span>
-                        <span>{loading ? 'Exporting...' : 'Export Excel'}</span>
                     </button>
-                    <Link
-                        href="/dashboard/leads/create"
-                        className="flex min-w-[140px] items-center justify-center gap-2 rounded-xl h-12 px-6 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/25 hover:brightness-110 transition-all active:scale-95"
-                    >
-                        <span className="material-symbols-outlined font-bold">add</span>
-                        <span>Add New Lead</span>
-                    </Link>
+                    <div className="hidden md:flex flex-wrap gap-3">
+                        <button
+                            onClick={handleExport}
+                            disabled={loading}
+                            className="flex items-center justify-center gap-2 rounded-xl h-12 px-6 bg-white border border-slate-200 text-slate-700 text-sm font-bold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span className="material-symbols-outlined text-xl">download</span>
+                            <span>{loading ? 'Exporting...' : 'Export Excel'}</span>
+                        </button>
+                        <Link
+                            href="/dashboard/leads/create"
+                            className="flex min-w-[140px] items-center justify-center gap-2 rounded-xl h-12 px-6 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/25 hover:brightness-110 transition-all active:scale-95"
+                        >
+                            <span className="material-symbols-outlined font-bold">add</span>
+                            <span>Add New Lead</span>
+                        </Link>
+                    </div>
                 </div>
             </div>
 
-            {/* Stats Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {/* Stats Section (Desktop Only) */}
+            <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-slate-500 text-[10px] font-black uppercase tracking-wider">Total Leads</span>
@@ -304,8 +316,8 @@ export default function LeadsPage() {
                 </div>
             </div>
 
-            {/* Filters Section */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6 flex flex-wrap gap-4 items-center">
+            {/* Filters Section (Desktop Only) */}
+            <div className="hidden md:flex bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6 flex-wrap gap-4 items-center">
                 <div className="relative flex-1 min-w-[280px]">
                     <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
                         <span className="material-symbols-outlined text-xl">search</span>
@@ -448,8 +460,8 @@ export default function LeadsPage() {
                 </div>
             </div>
 
-            {/* Leads Table */}
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            {/* Leads Table (Sliding horizontal container) */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm mb-6">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
@@ -599,6 +611,267 @@ export default function LeadsPage() {
                     onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
                 />
             </div>
+
+            {/* Sticky Bottom Tab Bar for Mobile */}
+            <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-slate-200 flex justify-around items-center md:hidden z-40 shadow-2xl">
+                <button
+                    onClick={() => {
+                        setShowMobileFilters(true);
+                        setShowMobileStats(false);
+                    }}
+                    className={`flex flex-col items-center gap-1 text-[10px] font-bold ${showMobileFilters ? "text-primary" : "text-slate-500"}`}
+                >
+                    <span className="material-symbols-outlined text-xl">filter_alt</span>
+                    <span>Filters</span>
+                </button>
+
+                <Link
+                    href="/dashboard/leads/create"
+                    className="flex items-center justify-center size-12 rounded-full bg-primary text-white shadow-lg shadow-primary/30 active:scale-95 transition-all -translate-y-3 border-4 border-white"
+                    title="Add New Lead"
+                >
+                    <span className="material-symbols-outlined font-black text-2xl">add</span>
+                </Link>
+
+                <button
+                    onClick={() => {
+                        setShowMobileStats(true);
+                        setShowMobileFilters(false);
+                    }}
+                    className={`flex flex-col items-center gap-1 text-[10px] font-bold ${showMobileStats ? "text-primary" : "text-slate-500"}`}
+                >
+                    <span className="material-symbols-outlined text-xl">analytics</span>
+                    <span>Analytics</span>
+                </button>
+            </div>
+
+            {/* Mobile Filters Overlay Drawer */}
+            {showMobileFilters && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex justify-end md:hidden">
+                    <div className="w-full max-w-[320px] bg-white h-full p-5 flex flex-col gap-4 overflow-y-auto shadow-2xl">
+                        <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                            <span className="text-base font-black text-slate-900">Search & Filters</span>
+                            <button onClick={() => setShowMobileFilters(false)} className="text-slate-400 hover:text-slate-600">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        {/* Search Bar */}
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-xs font-bold text-slate-700">Search Query</span>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+                                    <span className="material-symbols-outlined text-lg">search</span>
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Search name, phone, email..."
+                                    value={filters.search}
+                                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                                    onKeyDown={handleSearch}
+                                    className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all font-medium"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Staff Search */}
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'developer') && (
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-xs font-bold text-slate-700">Created By Staff</span>
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+                                        <span className="material-symbols-outlined text-lg">person_search</span>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        placeholder="Staff Name..."
+                                        value={filters.staffSearch}
+                                        onChange={(e) => setFilters({ ...filters, staffSearch: e.target.value })}
+                                        onKeyDown={handleSearch}
+                                        className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all font-medium italic"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Date Filters */}
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-xs font-bold text-slate-700">Date Filters</span>
+                            <select
+                                value={filters.dateType}
+                                onChange={(e) => {
+                                    setFilters({ ...filters, dateType: e.target.value });
+                                    setPagination(prev => ({ ...prev, page: 1 }));
+                                }}
+                                className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                            >
+                                <option value="createdAt">Created On</option>
+                                <option value="checkInDate">Check-in</option>
+                                <option value="checkOutDate">Check-out</option>
+                                <option value="nextCallDate">Follow-up</option>
+                                {(currentUser?.role === 'admin' || currentUser?.role === 'developer') && (
+                                    <option value="recentTask">Recent Task</option>
+                                )}
+                            </select>
+                            <div className="flex flex-col gap-2 mt-1">
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase">From</span>
+                                    <input
+                                        type="date"
+                                        value={filters.startDate}
+                                        onChange={(e) => {
+                                            setFilters({ ...filters, startDate: e.target.value });
+                                            setPagination(prev => ({ ...prev, page: 1 }));
+                                        }}
+                                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase">To</span>
+                                    <input
+                                        type="date"
+                                        value={filters.endDate}
+                                        onChange={(e) => {
+                                            setFilters({ ...filters, endDate: e.target.value });
+                                            setPagination(prev => ({ ...prev, page: 1 }));
+                                        }}
+                                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-xs font-bold text-slate-700">Pipeline Status</span>
+                            <select
+                                value={filters.status}
+                                onChange={(e) => {
+                                    setFilters({ ...filters, status: e.target.value });
+                                    setPagination(prev => ({ ...prev, page: 1 }));
+                                }}
+                                className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                            >
+                                <option value="">All Statuses</option>
+                                <option value="new">New Inquiries</option>
+                                <option value="hot">🔥 Hot Leads</option>
+                                <option value="warm">⚡ Warm Leads</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="negotiating">Negotiating</option>
+                                <option value="closed-won">Closed Won</option>
+                                <option value="closed-lost">❌ Closed Lost</option>
+                            </select>
+                        </div>
+
+                        {/* Source Filter */}
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-xs font-bold text-slate-700">Source Channel</span>
+                            <select
+                                value={filters.source}
+                                onChange={(e) => {
+                                    setFilters({ ...filters, source: e.target.value });
+                                    setPagination(prev => ({ ...prev, page: 1 }));
+                                }}
+                                className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                            >
+                                <option value="">All Sources</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="website">Website</option>
+                                <option value="direct-call">Direct Call</option>
+                                <option value="walk-in">Walk-in</option>
+                                <option value="referral">Referral</option>
+                            </select>
+                        </div>
+
+                        {/* Bin Filter for Admins */}
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'developer') && (
+                            <button
+                                onClick={() => {
+                                    setFilters(prev => ({ ...prev, showDeleted: !prev.showDeleted }));
+                                    setPagination(prev => ({ ...prev, page: 1 }));
+                                }}
+                                className={`flex items-center justify-center gap-2 h-10 w-full rounded-xl border transition-all text-xs font-bold ${filters.showDeleted
+                                    ? 'bg-red-50 border-red-200 text-red-600'
+                                    : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">
+                                    {filters.showDeleted ? 'restore_from_trash' : 'delete_sweep'}
+                                </span>
+                                <span>{filters.showDeleted ? 'Viewing Deleted Leads' : 'View Bin / Deleted'}</span>
+                            </button>
+                        )}
+
+                        <div className="flex gap-2 mt-auto pt-4 border-t border-slate-100">
+                            <button
+                                onClick={() => {
+                                    setFilters({ search: "", status: "", source: "", startDate: "", endDate: "", dateType: "createdAt", staffSearch: "", showDeleted: false });
+                                    setPagination(prev => ({ ...prev, page: 1 }));
+                                }}
+                                className="flex-1 h-10 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 active:scale-95 transition-all"
+                            >
+                                Reset
+                            </button>
+                            <button
+                                onClick={() => setShowMobileFilters(false)}
+                                className="flex-1 h-10 rounded-xl bg-primary text-white text-xs font-bold hover:brightness-110 active:scale-95 transition-all"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Mobile Stats Drawer */}
+            {showMobileStats && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center md:hidden" onClick={() => setShowMobileStats(false)}>
+                    <div className="w-full bg-white rounded-t-2xl p-5 flex flex-col gap-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                            <span className="text-base font-black text-slate-900">Analytics Overview</span>
+                            <button onClick={() => setShowMobileStats(false)} className="text-slate-400">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <div className="flex flex-col gap-3 mt-2">
+                            {/* Stat Card 1 */}
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-slate-500 text-[10px] font-black uppercase">Total Leads</span>
+                                    <span className="text-xl font-black text-slate-900 mt-0.5">{stats.totalLeads.toLocaleString()}</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">
+                                    +{stats.newLeadsToday} Today
+                                </span>
+                            </div>
+                            
+                            {/* Stat Card 2 */}
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-slate-500 text-[10px] font-black uppercase">Hot Leads</span>
+                                    <span className="text-xl font-black text-slate-900 mt-0.5">{stats.hotLeads}</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-md">
+                                    🔥 Live Inquiries
+                                </span>
+                            </div>
+                            
+                            {/* Stat Card 3 */}
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-slate-500 text-[10px] font-black uppercase">Conversion</span>
+                                    <span className="text-xl font-black text-slate-900 mt-0.5">{stats.conversionRate}%</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                                    Won Pipeline
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

@@ -112,7 +112,7 @@ export default function StaffPage() {
     const canManage = currentUser?.role === 'admin' || currentUser?.role === 'developer';
 
     return (
-        <div className="p-8 max-w-7xl mx-auto w-full">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full pb-24 md:pb-8">
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 mb-4 text-sm font-medium">
                 <a className="text-[#618389] hover:text-primary transition-colors" href="#">Admin Panel</a>
@@ -121,15 +121,15 @@ export default function StaffPage() {
             </div>
 
             {/* Page Heading */}
-            <div className="flex justify-between items-end mb-8">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
                 <div>
-                    <h3 className="text-[#111718] text-3xl font-black tracking-tight mb-2">Manage Team Members</h3>
-                    <p className="text-[#618389] text-base">Control administrative access, manage staff roles, and monitor account activity.</p>
+                    <h3 className="text-[#111718] text-2xl md:text-3xl font-black tracking-tight mb-2">Manage Team Members</h3>
+                    <p className="text-[#618389] text-sm md:text-base">Control administrative access, manage staff roles, and monitor account activity.</p>
                 </div>
                 {canManage && (
                     <button
                         onClick={handleCreate}
-                        className="flex items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+                        className="hidden md:flex items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all shrink-0"
                     >
                         <span className="material-symbols-outlined mr-2">person_add</span>
                         <span>Create New Staff</span>
@@ -137,8 +137,8 @@ export default function StaffPage() {
                 )}
             </div>
 
-            {/* Table Content */}
-            <div className="bg-white rounded-xl border border-[#dbe4e6] shadow-sm overflow-hidden">
+            {/* Desktop Table Content (hidden on mobile) */}
+            <div className="hidden md:block bg-white rounded-xl border border-[#dbe4e6] shadow-sm overflow-hidden mb-6">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -220,7 +220,85 @@ export default function StaffPage() {
                         </tbody>
                     </table>
                 </div>
+            </div>
 
+            {/* Mobile Cards List (hidden on desktop) */}
+            <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
+                {loading ? (
+                    <div className="bg-white rounded-xl border border-[#dbe4e6] p-8 text-center text-[#618389]">
+                        Loading staff members...
+                    </div>
+                ) : users.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-[#dbe4e6] p-8 text-center text-[#618389]">
+                        No staff members found.
+                    </div>
+                ) : users.map((member) => (
+                    <div key={member._id} className="bg-white rounded-xl border border-[#dbe4e6] p-4 shadow-sm flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                                <div className={`${member.role === 'admin' || member.role === 'developer' ? 'bg-primary/20 text-primary' : 'bg-[#e2e8f0] text-gray-600'} font-bold rounded-full size-10 flex items-center justify-center uppercase text-sm`}>
+                                    {(member.fullName || member.username || "??").substring(0, 2)}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-bold text-[#111718]">{member.fullName || member.username}</div>
+                                    <div className="text-xs text-[#618389]">@{member.username}</div>
+                                </div>
+                            </div>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${member.role === 'admin' || member.role === 'developer'
+                                ? 'bg-primary/10 text-primary border-primary/20'
+                                : 'bg-gray-100 text-gray-600 border-gray-200'
+                                }`}>
+                                {member.role}
+                            </span>
+                        </div>
+                        
+                        <div className="border-t border-[#f6f8f8] pt-3 flex flex-col gap-1.5 text-xs text-[#618389]">
+                            <div className="flex justify-between">
+                                <span className="font-semibold">Email:</span>
+                                <span className="text-[#111718]">{member.email}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-semibold">Phone:</span>
+                                <span className="text-[#111718]">{member.phone || "No phone"}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="font-semibold">Status:</span>
+                                <button
+                                    onClick={() => canManage && toggleStatus(member)}
+                                    className={`flex items-center gap-1.5 ${canManage ? 'cursor-pointer' : 'cursor-default'}`}
+                                >
+                                    <span className={`size-1.5 rounded-full ${(member.status || 'active') === 'active' ? 'bg-emerald-500' : 'bg-gray-400'}`}></span>
+                                    <span className={`text-xs font-medium ${(member.status || 'active') === 'active' ? 'text-emerald-600' : 'text-gray-500'} ${canManage ? 'underline' : ''}`}>
+                                        {(member.status || 'active').charAt(0).toUpperCase() + (member.status || 'active').slice(1)}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {canManage && (
+                            <div className="border-t border-[#f6f8f8] pt-2 mt-1 flex justify-end gap-2">
+                                <button
+                                    onClick={() => handleEdit(member)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#618389] hover:bg-primary/10 hover:text-primary transition-all border border-[#dbe4e6]"
+                                >
+                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(member._id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-all border border-red-100"
+                                >
+                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                    Delete
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Pagination Section */}
+            <div className="bg-white rounded-xl border border-[#dbe4e6] shadow-sm p-4">
                 <TablePagination
                     pagination={pagination}
                     onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
@@ -238,9 +316,22 @@ export default function StaffPage() {
                 />
             )}
 
+            {/* Bottom Action Bar on Mobile */}
+            {canManage && (
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[#dbe4e6] flex justify-center md:hidden z-30 shadow-lg">
+                    <button
+                        onClick={handleCreate}
+                        className="flex items-center justify-center rounded-xl h-12 w-full max-w-md bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+                    >
+                        <span className="material-symbols-outlined mr-2">person_add</span>
+                        <span>Create New Staff</span>
+                    </button>
+                </div>
+            )}
+
             {/* Toast Notification */}
             {toast && (
-                <div className="fixed bottom-8 right-8 flex items-center gap-3 bg-white border-l-4 border-primary shadow-xl rounded-lg px-6 py-4 max-w-sm animate-fade-in-up border border-[#dbe4e6]/50">
+                <div className="fixed bottom-20 md:bottom-8 right-8 flex items-center gap-3 bg-white border-l-4 border-primary shadow-xl rounded-lg px-6 py-4 max-w-sm animate-fade-in-up border border-[#dbe4e6]/50 z-50">
                     <div className="bg-primary/20 p-2 rounded-full">
                         <span className="material-symbols-outlined text-primary text-sm !fill-1">check</span>
                     </div>

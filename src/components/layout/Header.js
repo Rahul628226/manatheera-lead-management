@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-export default function Header() {
+export default function Header({ toggleSidebar }) {
     const [user, setUser] = useState(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -36,10 +36,22 @@ export default function Header() {
     };
 
     return (
-        <header className="flex items-center justify-between bg-white border-b border-[#dbe4e6] px-8 py-4 sticky top-0 z-50">
-            <div className="flex items-center gap-8 flex-1">
-
-
+        <header className="flex items-center justify-between bg-white border-b border-[#dbe4e6] px-4 md:px-8 py-4 sticky top-0 z-50">
+            <div className="flex items-center gap-3 md:gap-8 flex-1">
+                <button
+                    onClick={toggleSidebar}
+                    className="md:hidden flex items-center justify-center p-2 rounded-lg text-[#618389] hover:bg-[#f6f8f8] active:bg-[#dbe4e6]"
+                >
+                    <span className="material-symbols-outlined">menu</span>
+                </button>
+                
+                {/* Logo visible only on mobile/tablet when sidebar is hidden */}
+                <div className="flex md:hidden items-center gap-2">
+                    <div className="bg-primary/10 rounded-lg size-8 flex items-center justify-center overflow-hidden border border-primary/20">
+                        <img src="/favicon.jpg" alt="Logo" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-[#111718] text-sm font-bold">Manatheera</span>
+                </div>
             </div>
 
             <div className="flex items-center gap-3">

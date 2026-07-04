@@ -94,18 +94,19 @@ export default function FacilitiesPage() {
     };
 
     return (
-        <main className="max-w-[1440px] mx-auto px-6 py-8 w-full">
-            <div className="flex justify-between items-end mb-10">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-slate-900 text-3xl font-black italic tracking-tight uppercase">Facility Management</h1>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Configure your facility inventory</p>
+        <main className="max-w-[1440px] mx-auto px-4 md:px-6 py-6 md:py-8 w-full">
+            <div className="flex justify-between items-center gap-4 mb-8">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-slate-900 text-2xl md:text-3xl font-black italic tracking-tight uppercase">Facility Management</h1>
+                    <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">Configure your facility inventory</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 px-6 h-12 bg-primary text-white rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+                    className="flex items-center justify-center gap-2 size-10 md:w-auto md:h-12 md:px-6 bg-primary text-white rounded-xl text-sm font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all shrink-0"
+                    title="Add New Facility"
                 >
                     <span className="material-symbols-outlined text-xl">home_repair_service</span>
-                    <span>Add New Facility</span>
+                    <span className="hidden md:inline">Add New Facility</span>
                 </button>
             </div>
 
@@ -139,7 +140,7 @@ export default function FacilitiesPage() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 relative animate-in zoom-in-95 duration-200">
+                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8 relative animate-in zoom-in-95 duration-200">
                         <button
                             onClick={() => setIsModalOpen(false)}
                             className="absolute top-5 right-5 text-slate-300 hover:text-slate-500 p-2"

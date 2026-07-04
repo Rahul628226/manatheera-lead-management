@@ -44,3 +44,25 @@ export async function PATCH(req, { params }) {
         return NextResponse.json({ status: 'error', message: error.message }, { status: 500 });
     }
 }
+
+export async function DELETE(req, { params }) {
+    try {
+        const user = await verifyAuth(req);
+        if (!user || (user.role !== 'admin' && user.role !== 'developer')) {
+            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await params;
+        await dbConnect();
+
+        const deletedContact = await Contact7.findByIdAndDelete(id);
+
+        if (!deletedContact) {
+            return NextResponse.json({ status: 'error', message: 'Contact not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ status: 'success', message: 'Contact deleted successfully' }, { status: 200 });
+    } catch (error) {
+        return NextResponse.json({ status: 'error', message: error.message }, { status: 500 });
+    }
+}

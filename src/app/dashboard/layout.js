@@ -28,6 +28,8 @@ export default function DashboardLayout({ children }) {
         checkAuth();
     }, [router]);
 
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
     if (!authorized) {
         return (
             <div className="flex h-screen items-center justify-center bg-[#f6f8f8]">
@@ -41,9 +43,9 @@ export default function DashboardLayout({ children }) {
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#f6f8f8]">
-            <Sidebar />
+            <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
             <div className="flex-1 flex flex-col overflow-y-auto">
-                <Header />
+                <Header toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
                 <main className="flex-1">
                     {children}
                 </main>
