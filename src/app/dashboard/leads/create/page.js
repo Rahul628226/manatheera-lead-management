@@ -129,17 +129,17 @@ export default function CreateLead() {
     return (
         <div className="flex flex-col flex-1">
             {/* Form Header */}
-            <header className="flex items-center justify-between bg-white border-b border-[#dbe4e6] px-10 py-4 sticky top-0 z-20">
+            <header className="flex flex-col md:flex-row md:items-center justify-between bg-white border-b border-[#dbe4e6] px-4 md:px-10 py-4 sticky top-0 z-20 gap-3">
                 <div className="flex items-center gap-4 text-[#111718]">
-                    <div className="size-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                    <div className="size-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20 shrink-0">
                         <span className="material-symbols-outlined">hotel</span>
                     </div>
                     <div>
-                        <h2 className="text-lg font-black leading-tight">Create New Lead</h2>
+                        <h2 className="text-base md:text-lg font-black leading-tight">Create New Lead</h2>
                         <p className="text-xs text-[#618389] font-medium">Add a new inquiry for resort management</p>
                     </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="hidden md:flex gap-3">
                     <button
                         onClick={() => router.back()}
                         className="h-11 px-6 rounded-xl border border-[#dbe4e6] text-[#111718] text-sm font-bold hover:bg-[#f6f8f8] transition-all"
@@ -163,14 +163,38 @@ export default function CreateLead() {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto p-4 md:p-10 max-w-5xl mx-auto w-full">
+            {/* Mobile Bottom Navigation Actions */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-t border-[#dbe4e6] px-4 py-3 flex items-center justify-between gap-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-safe-bottom">
+                <button
+                    onClick={() => router.back()}
+                    className="flex-1 h-11 rounded-xl border border-[#dbe4e6] text-[#111718] text-xs font-bold hover:bg-[#f6f8f8] transition-all"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={(e) => handleSave(e, false)}
+                    disabled={loading}
+                    className="flex-1 h-11 rounded-xl border border-[#dbe4e6] text-[#111718] text-xs font-bold hover:bg-[#f6f8f8] transition-all"
+                >
+                    {loading ? "..." : "Save & New"}
+                </button>
+                <button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="flex-1 h-11 rounded-xl bg-primary text-white text-xs font-black shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+                >
+                    {loading ? "Saving..." : "Save"}
+                </button>
+            </div>
+
+            <main className="flex-1 overflow-y-auto p-4 md:p-10 pb-24 md:pb-10 max-w-5xl mx-auto w-full">
                 {error && (
                     <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 italic text-sm font-bold">
                         {error}
                     </div>
                 )}
 
-                <div className="bg-white border border-[#dbe4e6] rounded-2xl shadow-sm p-8">
+                <div className="bg-white border border-[#dbe4e6] rounded-2xl shadow-sm p-4 md:p-8">
                     <h3 className="text-xs font-black text-[#618389] uppercase tracking-widest mb-10 border-b border-[#f0f4f4] pb-5">Basic Information</h3>
 
                     <form className="space-y-8">
@@ -209,7 +233,7 @@ export default function CreateLead() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111718] flex items-center gap-1">
                                             Phone
@@ -248,7 +272,7 @@ export default function CreateLead() {
 
                             {/* Right Column */}
                             <div className="space-y-8">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111718] flex items-center gap-1">
                                             Lead Source
@@ -349,7 +373,7 @@ export default function CreateLead() {
                         <div className="pt-8 border-t border-[#f0f4f4]">
                             <h3 className="text-xs font-black text-[#618389] uppercase tracking-widest mb-8">Booking Details</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-[#111718]">Check-in Date</label>
                                         <input

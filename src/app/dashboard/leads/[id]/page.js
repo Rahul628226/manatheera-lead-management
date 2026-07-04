@@ -32,9 +32,9 @@ export default function LeadDetailPage() {
         limit: 10
     });
     const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
-    const [isListening, setIsListening] = useState(false);
+    const [listeningTarget, setListeningTarget] = useState(null); // 'interaction', 'goal', or null
 
-    const handleSpeechRecognition = () => {
+    const handleSpeechRecognition = (target) => {
         if (typeof window === 'undefined') return;
         const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognitionClass) {
@@ -42,12 +42,15 @@ export default function LeadDetailPage() {
             return;
         }
 
-        if (isListening) {
+        if (listeningTarget === target) {
             if (window._recognition) {
                 window._recognition.stop();
             }
-            setIsListening(false);
+            setListeningTarget(null);
         } else {
+            if (window._recognition) {
+                window._recognition.stop();
+            }
             try {
                 const recognition = new SpeechRecognitionClass();
                 recognition.continuous = true;
@@ -55,36 +58,44 @@ export default function LeadDetailPage() {
                 recognition.lang = 'en-IN'; // Indian English language optimization
 
                 recognition.onstart = () => {
-                    setIsListening(true);
+                    setListeningTarget(target);
                 };
 
                 recognition.onresult = (event) => {
                     const transcript = event.results[event.results.length - 1][0].transcript;
                     if (transcript) {
-                        setNewLog(prev => ({
-                            ...prev,
-                            content: prev.content ? `${prev.content.trim()} ${transcript.trim()}` : transcript.trim()
-                        }));
+                        if (target === 'interaction') {
+                            setNewLog(prev => ({
+                                ...prev,
+                                content: prev.content ? `${prev.content.trim()} ${transcript.trim()}` : transcript.trim()
+                            }));
+                        } else if (target === 'goal') {
+                            setNextCall(prev => ({
+                                ...prev,
+                                goal: prev.goal ? `${prev.goal.trim()} ${transcript.trim()}` : transcript.trim()
+                            }));
+                        }
                     }
                 };
 
                 recognition.onerror = (event) => {
                     console.error("Speech recognition error", event.error);
-                    setIsListening(false);
+                    setListeningTarget(null);
                 };
 
                 recognition.onend = () => {
-                    setIsListening(false);
+                    setListeningTarget(null);
                 };
 
                 window._recognition = recognition;
                 recognition.start();
             } catch (err) {
                 console.error("Speech recognition failed to start", err);
-                setIsListening(false);
+                setListeningTarget(null);
             }
         }
     };
+
 
 
     useEffect(() => {
@@ -919,23 +930,23 @@ export default function LeadDetailPage() {
                                     </button>
                                 ))}
                             </div>
-                            <div className="relative">
+                            <div className="relative w-full flex flex-col">
                                 <textarea
                                     id="new-log"
                                     value={newLog.content}
                                     onChange={(e) => setNewLog({ ...newLog, content: e.target.value })}
-                                    placeholder={isListening ? "Listening... Speak now..." : "Write down the details of the conversation..."}
-                                    className="w-full h-32 bg-slate-50 border border-slate-100 rounded-2xl p-4 pr-12 text-sm font-medium focus:ring-2 focus:ring-primary/5 focus:bg-white outline-none transition-all resize-none"
+                                    placeholder={listeningTarget === 'interaction' ? "Listening... Speak now..." : "Write down the details of the conversation..."}
+                                    className="w-full h-32 block bg-slate-50 border border-slate-100 rounded-2xl p-4 pr-12 text-sm font-medium focus:ring-2 focus:ring-primary/5 focus:bg-white outline-none transition-all resize-none"
                                 ></textarea>
                                 <button
                                     type="button"
-                                    onClick={handleSpeechRecognition}
-                                    className={`absolute bottom-4 right-4 size-10 rounded-full flex items-center justify-center transition-all ${
-                                        isListening
+                                    onClick={() => handleSpeechRecognition('interaction')}
+                                    className={`absolute bottom-3 right-3 size-10 rounded-full flex items-center justify-center transition-all z-10 ${
+                                        listeningTarget === 'interaction'
                                             ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
                                             : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700'
                                     }`}
-                                    title={isListening ? "Stop voice transcription" : "Voice to Note"}
+                                    title={listeningTarget === 'interaction' ? "Stop voice transcription" : "Voice to Note"}
                                 >
                                     <span className="material-symbols-outlined text-lg">
                                         mic
@@ -1008,12 +1019,28 @@ export default function LeadDetailPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Follow-up Goal</label>
-                                    <textarea
-                                        value={nextCall.goal}
-                                        onChange={(e) => setNextCall({ ...nextCall, goal: e.target.value })}
-                                        placeholder="e.g. Confirm event availability and group discount..."
-                                        className="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-emerald-500/10 focus:bg-white outline-none resize-none transition-all"
-                                    ></textarea>
+                                    <div className="relative w-full flex flex-col">
+                                        <textarea
+                                            value={nextCall.goal}
+                                            onChange={(e) => setNextCall({ ...nextCall, goal: e.target.value })}
+                                            placeholder={listeningTarget === 'goal' ? "Listening... Speak now..." : "e.g. Confirm event availability and group discount..."}
+                                            className="w-full h-32 block bg-slate-50 border border-slate-200 rounded-xl p-4 pr-12 text-sm font-medium focus:ring-2 focus:ring-emerald-500/10 focus:bg-white outline-none resize-none transition-all"
+                                        ></textarea>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSpeechRecognition('goal')}
+                                            className={`absolute bottom-3 right-3 size-10 rounded-full flex items-center justify-center transition-all z-10 ${
+                                                listeningTarget === 'goal'
+                                                    ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700'
+                                            }`}
+                                            title={listeningTarget === 'goal' ? "Stop voice transcription" : "Voice to Note"}
+                                        >
+                                            <span className="material-symbols-outlined text-lg">
+                                                mic
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center justify-between bg-emerald-50 p-4 rounded-xl border border-emerald-100">
