@@ -53,6 +53,16 @@ export default function Sidebar({ isOpen = false, setIsOpen = () => {} }) {
             href: "/dashboard/logs",
             active: pathname === "/dashboard/logs"
         });
+
+        // Add Push Testing (developer only)
+        if (user?.role === 'developer') {
+            navItems.push({
+                name: "Push Testing",
+                icon: "send_and_archive",
+                href: "/dashboard/push-test",
+                active: pathname === "/dashboard/push-test"
+            });
+        }
     }
 
     return (

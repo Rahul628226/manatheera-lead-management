@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { getFcmToken } from "@/lib/firebaseClient";
 
 export default function Header({ toggleSidebar }) {
     const [user, setUser] = useState(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [loadingToken, setLoadingToken] = useState(false);
     const dropdownRef = useRef(null);
     const router = useRouter();
 
@@ -13,6 +16,12 @@ export default function Header({ toggleSidebar }) {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
             setUser(JSON.parse(storedUser));
+        }
+
+        if (typeof window !== 'undefined') {
+            const enabled = localStorage.getItem("fcm_enabled") === "true";
+            const permission = Notification.permission === "granted";
+            setPushEnabled(enabled && permission);
         }
 
         const handleClickOutside = (event) => {
@@ -25,7 +34,85 @@ export default function Header({ toggleSidebar }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    const handleTogglePush = async () => {
+        if (typeof window === 'undefined') return;
+
+        if (!("Notification" in window)) {
+            alert("This browser does not support desktop notifications.");
+            return;
+        }
+
+        if (pushEnabled) {
+            setLoadingToken(true);
+            try {
+                const storedToken = localStorage.getItem("fcm_token");
+                if (storedToken) {
+                    await fetch("/api/notifications/register-token", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ token: storedToken })
+                    });
+                }
+                localStorage.removeItem("fcm_token");
+                localStorage.removeItem("fcm_enabled");
+                setPushEnabled(false);
+            } catch (error) {
+                console.error("Failed to disable push notifications:", error);
+            } finally {
+                setLoadingToken(false);
+            }
+        } else {
+            setLoadingToken(true);
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission !== "granted") {
+                    alert("Notification permission was denied. Please update browser settings to allow notifications.");
+                    setLoadingToken(false);
+                    return;
+                }
+
+                const token = await getFcmToken();
+                if (token) {
+                    const response = await fetch("/api/notifications/register-token", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ token })
+                    });
+                    
+                    if (response.ok) {
+                        localStorage.setItem("fcm_token", token);
+                        localStorage.setItem("fcm_enabled", "true");
+                        setPushEnabled(true);
+                    } else {
+                        const errData = await response.json();
+                        alert(errData.message || "Failed to register device for push notifications.");
+                    }
+                } else {
+                    alert("Could not retrieve push token. Make sure Firebase VAPID key is configured.");
+                }
+            } catch (error) {
+                console.error("Failed to enable push notifications:", error);
+                alert("An error occurred while enabling push notifications.");
+            } finally {
+                setLoadingToken(false);
+            }
+        }
+    };
+
     const handleLogout = async () => {
+        try {
+            const storedToken = localStorage.getItem("fcm_token");
+            if (storedToken) {
+                await fetch("/api/notifications/register-token", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: storedToken })
+                });
+            }
+        } catch (err) {
+            console.error("Clean up push token failed during logout:", err);
+        }
+
         try {
             await fetch("/api/auth/logout", { method: "POST" });
         } catch (err) {
@@ -80,7 +167,25 @@ export default function Header({ toggleSidebar }) {
                                 <p className="text-xs text-[#618389] truncate">{user?.email}</p>
                             </div>
 
-                            <div className="border-t border-[#f6f8f8] pt-1 mt-1">
+                            {/* Push Notification Toggle */}
+                            <div className="px-4 py-2.5 border-b border-[#f6f8f8] flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[#618389] text-lg">notifications</span>
+                                    <span className="text-xs font-bold text-[#111718]">{loadingToken ? 'Loading...' : 'Push Alerts'}</span>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer select-none">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={pushEnabled} 
+                                        onChange={handleTogglePush}
+                                        disabled={loadingToken}
+                                        className="sr-only peer" 
+                                    />
+                                    <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3.5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+
+                            <div className="pt-1 mt-1">
                                 <button
                                     onClick={handleLogout}
                                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"

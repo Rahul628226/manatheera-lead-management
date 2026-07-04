@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active'
+    },
+    fcmTokens: {
+        type: [String],
+        default: []
     }
 }, { timestamps: true });
 
@@ -47,5 +51,9 @@ userSchema.pre('save', async function () {
 userSchema.methods.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
+
+if (process.env.NODE_ENV === 'development') {
+    delete mongoose.models.User;
+}
 
 export default mongoose.models.User || mongoose.model('User', userSchema);
