@@ -27,6 +27,13 @@ async function dbConnect() {
         cached.promise = mongoose.connect(MONGODB_URI, opts).then(async (mongoose) => {
             // Seed Developer only once per connection lifecycle
             await seedDeveloper();
+            // Start background notification checker dynamically to prevent circular dependencies
+            try {
+                const { startBackgroundCron } = require('./backgroundCron');
+                startBackgroundCron();
+            } catch (err) {
+                console.error("Failed to start background cron:", err);
+            }
             return mongoose;
         });
     }
