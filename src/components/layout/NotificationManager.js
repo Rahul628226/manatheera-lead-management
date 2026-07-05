@@ -106,6 +106,13 @@ export default function NotificationManager() {
                 if (prev.find(p => p.id === note.id)) return prev;
                 return [...prev, note];
             });
+
+            // Trigger FCM push notification on server for the lead owner/creator
+            fetch('/api/notifications/send-scheduled', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ leadId: note.id })
+            }).catch(err => console.error("FCM scheduled trigger failed:", err));
         };
 
         // 2. Local Schedule Checker (runs every 5 seconds)
